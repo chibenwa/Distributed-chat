@@ -174,7 +174,6 @@ public class ClientNetMngr {
             waitingUserList = true;
             System.out.println("sending user list request");
             full.sendMsg(0, chatData);
-            loopCondition = false;
         } catch( IOException ioe ) {
             System.out.println("Oh god, we failed sending the user list request !");
             return;
