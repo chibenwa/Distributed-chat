@@ -18,6 +18,8 @@ public class ChatData implements Serializable {
      * Type 4 : Leave notification
      * Type 5 : Deconnection request
      * Type 6 : Errors notifications
+     * Type 7 : Demand for a list of user
+     * Type 8 : Answer to a list of user
      */
     private int type;
     private String pseudo; // set by server only
@@ -31,6 +33,8 @@ public class ChatData implements Serializable {
         Type 5 : Client should not send Leave notification
         Type 6 : Message type not taken in account by protocole management
         Type 7 : When requesting a login, you should set the login field
+        Type 8 : Client should not send a user list to a server
+        Type 9 : Server provided a user list while the client never asked for
      */
     private int errorCode = 0;
     public Date getDate() {
@@ -85,6 +89,9 @@ public class ChatData implements Serializable {
         Type 4 : Client should not send join notification
         Type 5 : Client should not send Leave notification
         Type 6 : Message type not taken in account by protocole management
+        Type 7 : When requesting a login, you should set the login field
+        Type 8 : Client should not send a user list to a server
+        Type 9 : Server provided a user list while the client never asked for
         */
         switch(errorCode) {
             case 0 :
@@ -111,6 +118,11 @@ public class ChatData implements Serializable {
             case 7:
                 System.out.println("When requesting a login, you should set the login field");
                 break;
+            case 8:
+                System.out.println("Client should not send a user list to a server");
+                break;
+            case 9:
+                System.out.println("Server provided a user list while the client never asked for");
             default:
                 System.out.println("None specified error code");
                 break;

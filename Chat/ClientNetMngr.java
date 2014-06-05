@@ -19,6 +19,7 @@ public class ClientNetMngr {
     private Boolean hasLoginResponse = false;
     private InetSocketAddress isa;
     private Boolean loopCondition;
+    private Boolean waitingUserList = false;
 
     public Boolean getHasCompletedLogin() {
         return hasCompletedLogin;
@@ -60,7 +61,7 @@ public class ClientNetMngr {
         loopCondition = true;
         while(loopCondition) {
             loop++;
-            System.out.println("Loop NB : " + loop);
+        //    System.out.println("Loop NB : " + loop);
             full.readMessage();
             ChatData chdata;
             if( full == null ) {
@@ -111,8 +112,26 @@ public class ClientNetMngr {
                         chdata.printErrorCode();
                     }
                     break;
+                case 7:
+                    System.out.println("Why did the server send us a user list request ?");
+                    break;
+                case 8:
+                    if( waitingUserList ) {
+                        System.out.println( chdata.getDate() + " Peoples on the chat : " + chdata.getMessage() );
+                        waitingUserList = false;
+                    } else {
+                        // Inform the server he made a mistake : we never asked for what he provided us...
+                        ChatData informServer = new ChatData(0,6,"");
+                        informServer.setErrorCode(9);
+                        try {
+                            full.sendMsg(0, informServer);
+                        } catch( IOException ioe) {
+                            System.out.println("Problem telling the server we didn't need the user list");
+                        }
+                    }
+                    break;
                 default:
-                    System.out.println("Unhandled number for message type.");
+                    System.out.println("Unhandled number for message type : "+chdata.getType());
                     break;
             }
         }
@@ -149,4 +168,17 @@ public class ClientNetMngr {
         }
     }
 
+    public void askForUserList() {
+        ChatData chatData = new ChatData(0,7,"");
+        try {
+            waitingUserList = true;
+            System.out.println("sending user list request");
+            full.sendMsg(0, chatData);
+            loopCondition = false;
+        } catch( IOException ioe ) {
+            System.out.println("Oh god, we failed sending the user list request !");
+            return;
+        }
+
+    }
 }

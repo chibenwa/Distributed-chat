@@ -51,6 +51,9 @@ public class ClientThread extends Thread{
                 case 3:
                     displayHelp();
                     break;
+                case 4:
+                    clientNetMngr.askForUserList();
+                    break;
                 default :
                     System.out.println("Come on, try to do something usefull ! ");
                     break;
@@ -65,6 +68,7 @@ public class ClientThread extends Thread{
         System.out.println("Press 1 to send a message to all people present on the chat");
         System.out.println("Press 2 if you want to be disconnected from server");
         System.out.println("Press 3 to see this help again");
+        System.out.println("Press 4 to see every users on the Chat");
         System.out.println("Et oui je suis une sorte de répondeur!");
         System.out.println("");
     }

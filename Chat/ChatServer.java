@@ -130,7 +130,7 @@ public class ChatServer {
                                     // Check if the name is already used
                                     Boolean alredyExist = false;
                                     for (ClientStruct cls : cliStrs) {
-                                        if (cls.getPseudo() == rcv.getPseudo()) {
+                                        if (cls.getPseudo().equals(rcv.getPseudo()) ) {
                                             alredyExist = true;
                                         }
                                     }
@@ -247,6 +247,55 @@ public class ChatServer {
                                         // Yes we have an error. Print it :
                                         rcv.printErrorCode();
                                     }
+                                    break;
+                                case 7 :
+                                    System.out.println("Man, a user list request !");
+                                    // The client asks for a list of all users
+                                    if( cliStr.hasPseudo() ) {
+                                        // Ok, we now him, let send it
+                                        String pseudoChunk = "";
+                                        Boolean first = true;
+                                        for( ClientStruct cls : cliStrs) {
+                                            if( first ) {
+                                                first = false;
+                                            } else {
+                                                pseudoChunk += ", ";
+                                            }
+                                            pseudoChunk += cls.getPseudo();
+                                        }
+                                        System.out.println("Yes he is authentificated and we can send the user list ( we will really do it ! ) ");
+                                        chdata = new ChatData(0,8,pseudoChunk, cliStr.getPseudo());
+                                        try{
+                                            fdmw.sendMsg(0,chdata);
+                                        } catch( IOException ioe) {
+                                            System.out.println("Could not send the user list");
+                                            ioe.printStackTrace();
+                                        }
+                                    } else {
+                                        // Who's that guy? Kick him dude !
+                                        System.out.println("Non authentificated user can not ask for user list...");
+                                        // A client should not do that. Send error.
+                                        chdata = new ChatData(0, 6, "");
+                                        chdata.setErrorCode(2);
+                                        try {
+                                            cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
+                                        } catch (IOException ioe) {
+                                            System.out.println(loopNB + " Failed to send error for a client who asked for the user list while non authentificated");
+                                            ioe.printStackTrace();
+                                        }
+                                    }
+                                    break;
+                                case 8 :
+                                    // The user send us the user list. That is stupid ! Let's go tell him
+                                    System.out.println("User send us a list of pseudo");
+                                        chdata = new ChatData(0, 6, "");
+                                        chdata.setErrorCode(8);
+                                        try {
+                                            cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
+                                        } catch (IOException ioe) {
+                                            System.out.println(loopNB + " Failed to send error for a client who send us a user list");
+                                            ioe.printStackTrace();
+                                        }
                                     break;
                                 default:
                             }
