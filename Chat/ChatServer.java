@@ -107,12 +107,14 @@ public class ChatServer {
                             ioe.printStackTrace();
                             rcv = null;
                         }
-                        switch( rcv.getType()) {
+                        if( fdmw.getMessType() == 0) {
+                            // Here we have a message from a client to our server to use the Chat
+                            switch (rcv.getType()) {
                                 case 0:
                                     // Here we have a demand for pseudo !
                                     //Set pseudo
                                     System.out.println("demand for pseudo : " + rcv.getPseudo());
-                                    if( !rcv.hasPseudo() ) {
+                                    if (!rcv.hasPseudo()) {
                                         // Return error 7 to client
                                         chdata = new ChatData(0, 6, "");
                                         chdata.setErrorCode(7);
@@ -127,27 +129,27 @@ public class ChatServer {
                                     }
                                     // Check if the name is already used
                                     Boolean alredyExist = false;
-                                    for(ClientStruct cls : cliStrs) {
-                                        if( cls.getPseudo() == rcv.getPseudo()) {
+                                    for (ClientStruct cls : cliStrs) {
+                                        if (cls.getPseudo() == rcv.getPseudo()) {
                                             alredyExist = true;
                                         }
                                     }
                                     // Notify all clients
-                                    if( !alredyExist ) {
+                                    if (!alredyExist) {
                                         System.out.println("Pseudo available");
-                                        cliStrs.add( cliStr );
+                                        cliStrs.add(cliStr);
                                         // But first tell the client he was accepted
                                         chdata = new ChatData(0, 1, "", rcv.getPseudo());
                                         // Store the login
-                                        cliStr.setPseudo( rcv.getPseudo() );
+                                        cliStr.setPseudo(rcv.getPseudo());
                                         // And notify every one
                                         try {
                                             cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                        }catch (IOException ioe) {
+                                        } catch (IOException ioe) {
                                             System.out.println(loopNB + " Failed to send ack for a pseudo demand");
                                             ioe.printStackTrace();
                                         }
-                                        chdata = new ChatData(0, 3,"", rcv.getPseudo());
+                                        chdata = new ChatData(0, 3, "", rcv.getPseudo());
                                         broadcast(chdata);
                                         break;
                                     } else {
@@ -156,7 +158,7 @@ public class ChatServer {
                                         chdata.setErrorCode(1);
                                         try {
                                             cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                        }catch (IOException ioe) {
+                                        } catch (IOException ioe) {
                                             System.out.println(loopNB + " Failed to send error for error for an alredy used login");
                                             ioe.printStackTrace();
                                         }
@@ -168,7 +170,7 @@ public class ChatServer {
                                     chdata.setErrorCode(3);
                                     try {
                                         cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                    }catch (IOException ioe) {
+                                    } catch (IOException ioe) {
                                         System.out.println(loopNB + " Failed to send error for a client who sent an ack for pseudo");
                                         ioe.printStackTrace();
                                     }
@@ -177,14 +179,14 @@ public class ChatServer {
                                     //Here we have someone who sent a message
                                     System.out.println("new message");
                                     // Broadcast it
-                                    if( cliStr.hasPseudo() ) {
+                                    if (cliStr.hasPseudo()) {
                                         System.out.println("new message content " + rcv.getMessage());
                                         chdata = new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo());
                                         broadcast(chdata);
                                     } else {
                                         System.out.println("Need pseudo man");
                                         // No pseudo set for this operation, even if it is required. Send an error.
-                                        chdata = new ChatData(0,6,"");
+                                        chdata = new ChatData(0, 6, "");
                                         chdata.setErrorCode(2);
                                         try {
                                             cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
@@ -198,7 +200,7 @@ public class ChatServer {
                                     // Here we received a join notification.
                                     System.out.println("join notification");
                                     // A client should not do that. Send error.
-                                    chdata = new ChatData(0,6,"");
+                                    chdata = new ChatData(0, 6, "");
                                     chdata.setErrorCode(4);
                                     try {
                                         cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
@@ -211,11 +213,11 @@ public class ChatServer {
                                     // Here we received a leave notification.
                                     System.out.println("leave notification");
                                     // A client should not do that. Send error.
-                                    chdata = new ChatData(0,6,"");
+                                    chdata = new ChatData(0, 6, "");
                                     chdata.setErrorCode(5);
                                     try {
                                         cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                    }catch (IOException ioe) {
+                                    } catch (IOException ioe) {
                                         System.out.println(loopNB + " Failed to send error for a client who send a leave notification");
                                         ioe.printStackTrace();
                                     }
@@ -224,7 +226,7 @@ public class ChatServer {
                                     //Here we have a deconnection request
                                     // Notify every one
                                     System.out.println("Deconnection request handled");
-                                    if( cliStr.hasPseudo() ) {
+                                    if (cliStr.hasPseudo()) {
 
                                         chdata = new ChatData(0, 4, "", cliStr.getPseudo());
                                         broadcast(chdata);
@@ -241,13 +243,22 @@ public class ChatServer {
                                     break;
                                 case 6:
                                     // The client send us an error
-                                    if( rcv.hasError() ) {
+                                    if (rcv.hasError()) {
                                         // Yes we have an error. Print it :
                                         rcv.printErrorCode();
                                     }
                                     break;
                                 default:
                             }
+                        } else {
+                            if( fdmw.getMessType() == 1 ) {
+                                // Oh dude here this is an election package !
+                            } else {
+                                if(fdmw.getMessType() == 2) {
+                                    // Here we are synchronising messages on our ( future ) distributed Chat
+                                }
+                            }
+                        }
                     }
                 }
                 // No other operations... More to come at this point !
