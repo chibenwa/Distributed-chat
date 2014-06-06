@@ -123,11 +123,7 @@ public class ClientNetMngr {
                         // Inform the server he made a mistake : we never asked for what he provided us...
                         ChatData informServer = new ChatData(0,6,"");
                         informServer.setErrorCode(9);
-                        try {
-                            full.sendMsg(0, informServer);
-                        } catch( IOException ioe) {
-                            System.out.println("Problem telling the server we didn't need the user list");
-                        }
+                        sendMessage(informServer, "Problem telling the server we didn't need the user list");
                     }
                     break;
                 default:
@@ -138,46 +134,29 @@ public class ClientNetMngr {
     }
 
     public void askNewLogin(String newLogin) {
-        ChatData chdata = new ChatData(0,0,"",newLogin);
-        try {
-            full.sendMsg(0, chdata);
-        } catch( IOException ioe ) {
-            System.out.println("Oh god, we failed sending the pseudo request !");
-            return;
-        }
+        sendMessage( new ChatData(0,0,"",newLogin), "Oh god, we failed sending the pseudo request !" );
     }
 
     public void sendMsg( String msg, String pseudo) {
-        ChatData chatData = new ChatData(0,2,msg,pseudo);
-        try {
-            full.sendMsg(0, chatData);
-        } catch( IOException ioe ) {
-            System.out.println("Oh god, we failed sending the pseudo request !");
-            return;
-        }
+        sendMessage( new ChatData(0,2,msg,pseudo), "Oh god, we failed sending the pseudo request !" );
     }
 
     public void disconnect( ) {
-        ChatData chatData = new ChatData(0,5,"");
-        try {
-            full.sendMsg(0, chatData);
-            loopCondition = false;
-        } catch( IOException ioe ) {
-            System.out.println("Oh god, we failed sending the pseudo request !");
-            return;
-        }
+        sendMessage( new ChatData(0,5,""), "Oh god, we failed sending the pseudo request !" );
     }
 
     public void askForUserList() {
-        ChatData chatData = new ChatData(0,7,"");
+        waitingUserList = true;
+        System.out.println("sending user list request");
+        sendMessage(new ChatData(0,7,""), "Oh god, we failed sending the user list request !");
+    }
+
+    private void sendMessage(ChatData chatData, String ioErrorMessage) {
         try {
-            waitingUserList = true;
-            System.out.println("sending user list request");
             full.sendMsg(0, chatData);
         } catch( IOException ioe ) {
-            System.out.println("Oh god, we failed sending the user list request !");
+            System.out.println(ioErrorMessage);
             return;
         }
-
     }
 }
