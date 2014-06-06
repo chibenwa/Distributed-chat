@@ -249,6 +249,24 @@ public class ChatServer {
                                             // Someone answered our demand for server connection. Ok, so we are well connected. Add the connection to the servers connections.
                                             handleServerConnectionRequest(fdmw);
                                             break;
+                                        case 2:
+                                            // Remote server demands us to close the connection. Let's do it
+                                            Boolean present = false;
+                                            ConnectionStruct toRemove = null;
+                                            for( ConnectionStruct cstr : serverStrs) {
+                                                if( cstr.getFullDuplexMessageWorker() == fdmw ) {
+                                                    present = true;
+                                                    toRemove = cstr;
+                                                }
+                                            }
+                                            if(present) {
+                                                serverStrs.remove(toRemove);
+                                            }
+                                            try {
+                                                fdmw.close();
+                                            } catch(IOException ioe) {
+                                                System.out.println("We could not disconnect server as requested...");
+                                            }
                                         case 42:
                                             // Error code : lets display it
                                             if( incomingMessage.hasError() ) {
@@ -416,5 +434,23 @@ public class ChatServer {
             }
         }
         return res;
+    }
+
+    public void reInitNetwork() {
+        /*
+        Useless in production environments but so useful while testing distributed algorithms
+         */
+        for( ConnectionStruct cstr : serverStrs) {
+            sendInterServerMessage( cstr.getFullDuplexMessageWorker(), new InterServerMessage(0,2),"Can not send a disconnection demand" );
+        }
+        for( ClientStruct clientStruct : cliStrs) {
+            try {
+                clientStruct.getFullDuplexMessageWorker().close();
+            } catch (IOException ioe) {
+                System.out.println("Can not close client connection");
+            }
+        }
+        serverStrs.clear();
+        cliStrs.clear();
     }
 }

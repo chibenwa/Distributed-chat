@@ -41,8 +41,12 @@ public class ServerClavierThread extends Thread{
                     chatServer.launchElection();
                     break;
                 case 3:
-                    // Get conncted server list
+                    // Get connected server list
                     System.out.println("Connected servers : " + chatServer.getServerList() );
+                    break;
+                case 4:
+                    // Re initialize network dude
+                    chatServer.reInitNetwork();
                     break;
                 default:
                     System.out.println("Command unrecognise...");
@@ -58,6 +62,7 @@ public class ServerClavierThread extends Thread{
         System.out.println("1 : Connect to another server");
         System.out.println("2 : Launch an election");
         System.out.println("3 : Display servers connected to this server");
+        System.out.println("4 : Re initialize network on this node ( all clients' and servers' connections will be closed )");
         System.out.println();
     }
 
