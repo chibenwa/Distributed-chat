@@ -3,8 +3,10 @@ package Chat;
 import csc4509.FullDuplexMessageWorker;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.UnknownHostException;
 import java.nio.channels.*;
 import java.util.*;
 
@@ -16,10 +18,12 @@ public class ChatServer {
     private ServerSocketChannel ssc;
     private Selector selector;
     private List<ClientStruct> cliStrs;
+    private  List<ConnectionStruct> serverStrs;
 
     public ChatServer(int _port) {
         port = _port;
         cliStrs = new ArrayList<ClientStruct>();
+        serverStrs = new ArrayList<ConnectionStruct>();
     }
 
     public void launch() {
@@ -97,17 +101,17 @@ public class ChatServer {
                         ClientStruct cliStr = (ClientStruct) key.attachment();
                         FullDuplexMessageWorker fdmw = cliStr.getFullDuplexMessageWorker();
                         fdmw.readMessage();
-                        ChatData chdata;
-                        ChatData rcv;
-                        try {
-                             rcv = (ChatData) fdmw.getData();
-                        }
-                        catch (IOException ioe) {
-                            System.out.println(loopNB + " Failed to receive message");
-                            ioe.printStackTrace();
-                            rcv = null;
-                        }
                         if( fdmw.getMessType() == 0) {
+                            ChatData chdata;
+                            ChatData rcv;
+                            try {
+                                rcv = (ChatData) fdmw.getData();
+                            }
+                            catch (IOException ioe) {
+                                System.out.println(loopNB + " Failed to receive message");
+                                ioe.printStackTrace();
+                                rcv = null;
+                            }
                             // Here we have a message from a client to our server to use the Chat
                             switch (rcv.getType()) {
                                 case 0:
@@ -116,15 +120,7 @@ public class ChatServer {
                                     System.out.println("demand for pseudo : " + rcv.getPseudo());
                                     if (!rcv.hasPseudo()) {
                                         // Return error 7 to client
-                                        chdata = new ChatData(0, 6, "");
-                                        chdata.setErrorCode(7);
-                                        try {
-                                            cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                        } catch (IOException ioe) {
-                                            System.out.println(loopNB + " Failed to send error for no login set in a pseudo demand");
-                                            ioe.printStackTrace();
-                                        }
-                                        it.remove();
+                                        sendClientError(cliStr,7," Failed to send error for no login set in a pseudo demand");
                                         break;
                                     }
                                     // Check if the name is already used
@@ -134,46 +130,23 @@ public class ChatServer {
                                             alredyExist = true;
                                         }
                                     }
-                                    // Notify all clients
                                     if (!alredyExist) {
                                         System.out.println("Pseudo available");
-                                        cliStrs.add(cliStr);
                                         // But first tell the client he was accepted
-                                        chdata = new ChatData(0, 1, "", rcv.getPseudo());
+                                        sendClientMessage( fdmw, new ChatData(0, 1, "", rcv.getPseudo()), " Failed to send ack for a pseudo demand" );
                                         // Store the login
                                         cliStr.setPseudo(rcv.getPseudo());
+                                        cliStrs.add(cliStr);
                                         // And notify every one
-                                        try {
-                                            cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                        } catch (IOException ioe) {
-                                            System.out.println(loopNB + " Failed to send ack for a pseudo demand");
-                                            ioe.printStackTrace();
-                                        }
-                                        chdata = new ChatData(0, 3, "", rcv.getPseudo());
-                                        broadcast(chdata);
+                                        broadcast(new ChatData(0, 3, "", rcv.getPseudo()));
                                         break;
                                     } else {
                                         // We can not allocate the pseudo as it is already taken. Notify Client.
-                                        chdata = new ChatData(0, 6, "");
-                                        chdata.setErrorCode(1);
-                                        try {
-                                            cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                        } catch (IOException ioe) {
-                                            System.out.println(loopNB + " Failed to send error for error for an alredy used login");
-                                            ioe.printStackTrace();
-                                        }
+                                        sendClientError(cliStr,1,"Failed to send error for error for an alredy used login");
                                     }
                                 case 1:
-                                    // Here we have an acknolegement for pseudo -> error
-                                    System.out.println("acknolegement for pseudo");
-                                    chdata = new ChatData(0, 6, "");
-                                    chdata.setErrorCode(3);
-                                    try {
-                                        cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                    } catch (IOException ioe) {
-                                        System.out.println(loopNB + " Failed to send error for a client who sent an ack for pseudo");
-                                        ioe.printStackTrace();
-                                    }
+                                    // Here we have an acknolgement for pseudo -> error
+                                    sendClientError(cliStr,3,"Failed to send error for a client who sent an ack for pseudo");
                                     break;
                                 case 2:
                                     //Here we have someone who sent a message
@@ -181,53 +154,30 @@ public class ChatServer {
                                     // Broadcast it
                                     if (cliStr.hasPseudo()) {
                                         System.out.println("new message content " + rcv.getMessage());
-                                        chdata = new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo());
-                                        broadcast(chdata);
+                                        broadcast( new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo()) );
                                     } else {
                                         System.out.println("Need pseudo man");
                                         // No pseudo set for this operation, even if it is required. Send an error.
-                                        chdata = new ChatData(0, 6, "");
-                                        chdata.setErrorCode(2);
-                                        try {
-                                            cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                        } catch (IOException ioe) {
-                                            System.out.println(loopNB + " Failed to send an error for missing pseudo in sent message");
-                                            ioe.printStackTrace();
-                                        }
+                                        sendClientError(cliStr,2," Failed to send an error for missing pseudo in sent message");
                                     }
                                     break;
                                 case 3:
                                     // Here we received a join notification.
                                     System.out.println("join notification");
                                     // A client should not do that. Send error.
-                                    chdata = new ChatData(0, 6, "");
-                                    chdata.setErrorCode(4);
-                                    try {
-                                        cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                    } catch (IOException ioe) {
-                                        System.out.println(loopNB + " Failed to send error for a client that send a join notification");
-                                        ioe.printStackTrace();
-                                    }
+                                    sendClientError(cliStr, 4,"Failed to send error for a client that send a join notification");
                                     break;
                                 case 4:
                                     // Here we received a leave notification.
                                     System.out.println("leave notification");
                                     // A client should not do that. Send error.
-                                    chdata = new ChatData(0, 6, "");
-                                    chdata.setErrorCode(5);
-                                    try {
-                                        cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                    } catch (IOException ioe) {
-                                        System.out.println(loopNB + " Failed to send error for a client who send a leave notification");
-                                        ioe.printStackTrace();
-                                    }
+                                    sendClientError(cliStr, 5, "Failed to send error for a client who send a leave notification");
                                     break;
                                 case 5:
                                     //Here we have a deconnection request
                                     // Notify every one
                                     System.out.println("Deconnection request handled");
                                     if (cliStr.hasPseudo()) {
-
                                         chdata = new ChatData(0, 4, "", cliStr.getPseudo());
                                         broadcast(chdata);
                                     }
@@ -265,37 +215,18 @@ public class ChatServer {
                                         }
                                         System.out.println("Yes he is authentificated and we can send the user list ( we will really do it ! ) ");
                                         chdata = new ChatData(0,8,pseudoChunk, cliStr.getPseudo());
-                                        try{
-                                            fdmw.sendMsg(0,chdata);
-                                        } catch( IOException ioe) {
-                                            System.out.println("Could not send the user list");
-                                            ioe.printStackTrace();
-                                        }
+                                        sendClientMessage(fdmw, chdata, "Could not send the user list");
                                     } else {
                                         // Who's that guy? Kick him dude !
                                         System.out.println("Non authentificated user can not ask for user list...");
                                         // A client should not do that. Send error.
-                                        chdata = new ChatData(0, 6, "");
-                                        chdata.setErrorCode(2);
-                                        try {
-                                            cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                        } catch (IOException ioe) {
-                                            System.out.println(loopNB + " Failed to send error for a client who asked for the user list while non authentificated");
-                                            ioe.printStackTrace();
-                                        }
+                                        sendClientError(cliStr, 2, "Failed to send error for a client who asked for the user list while non authentificated");
                                     }
                                     break;
                                 case 8 :
                                     // The user send us the user list. That is stupid ! Let's go tell him
                                     System.out.println("User send us a list of pseudo");
-                                        chdata = new ChatData(0, 6, "");
-                                        chdata.setErrorCode(8);
-                                        try {
-                                            cliStr.getFullDuplexMessageWorker().sendMsg(0, chdata);
-                                        } catch (IOException ioe) {
-                                            System.out.println(loopNB + " Failed to send error for a client who send us a user list");
-                                            ioe.printStackTrace();
-                                        }
+                                    sendClientError(cliStr, 8, "Failed to send error for a client who send us a user list");
                                     break;
                                 default:
                             }
@@ -305,6 +236,36 @@ public class ChatServer {
                             } else {
                                 if(fdmw.getMessType() == 2) {
                                     // Here we are synchronising messages on our ( future ) distributed Chat
+                                    InterServerMessage incomingMessage;
+                                    try{
+                                        incomingMessage = (InterServerMessage) fdmw.getData();
+                                    } catch( IOException ioe) {
+                                        System.out.println("Can not retrieve InterServerMessage we are receiving");
+                                        break;
+                                    }
+                                    // And here come a big switch
+                                    switch (incomingMessage.getType()) {
+                                        case 0:
+                                            System.out.println("Request for server connection received");
+                                            // Someone make a demand to be added to servers.
+                                            if( handleServerConnectionRequest(fdmw)) {
+                                                break;
+                                            }
+                                            // Then notify the other server that he had been correctly added :-)
+                                            sendInterServerMessage(fdmw, new InterServerMessage(0,1),"Can not send ack for a server connection established");
+                                            break;
+                                        case 1:
+                                            System.out.println("Our request for opening a new connection to another server was answered");
+                                            // Someone answered our demand for server connection. Ok, so we are well connected. Add the connection to the servers connections.
+                                            handleServerConnectionRequest(fdmw);
+                                            break;
+                                        case 42:
+                                            // Error code : lets display it
+                                            if( incomingMessage.hasError() ) {
+                                                incomingMessage.printErrorCode();
+                                            }
+                                            break;
+                                    }
                                 }
                             }
                         }
@@ -344,4 +305,94 @@ public class ChatServer {
         }
     }
 
+    protected void connectServer( String ipString, int _port) {
+        InetAddress add;
+        try{
+            add = InetAddress.getByName(ipString);
+        } catch(UnknownHostException uhe) {
+            System.out.println("The host server you are trying to connect is unknown to us, man... " + ipString);
+            return;
+        }
+        InetSocketAddress isa = new InetSocketAddress(add, _port);
+        SocketChannel chan;
+        try{
+            chan = SocketChannel.open(isa);
+        }catch(IOException ioe) {
+            System.out.println("Can not established a connection with " + isa);
+            return;
+        }
+        FullDuplexMessageWorker fullDuplexMessageWorker = new FullDuplexMessageWorker(chan);
+        try {
+            fullDuplexMessageWorker.configureNonBlocking();
+        } catch (IOException ioe) {
+            System.out.println("Can not configure channel server as non blocking");
+            return;
+        }
+        try {
+            chan.register(selector, SelectionKey.OP_READ, fullDuplexMessageWorker);
+        } catch(ClosedChannelException cce) {
+            System.out.println("Channel closed while registering channel for inter server communication");
+        }
+        // Now specify to the server that WE ARE A SERVER ...
+        InterServerMessage ism = new InterServerMessage(0,0);
+        try {
+            fullDuplexMessageWorker.sendMsg(2, "");
+        } catch (IOException ioe) {
+            System.out.println("Can not send a basic Hello I am a server ! ");
+            return;
+        }
+    }
+
+    private Boolean isServerConnectionEstablished( FullDuplexMessageWorker fdmw ) {
+        for( ConnectionStruct conStr : serverStrs) {
+            if( conStr.getFullDuplexMessageWorker() == fdmw ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Boolean handleServerConnectionRequest(FullDuplexMessageWorker fdmw) {
+        Boolean res = isServerConnectionEstablished(fdmw);
+        if( res ) {
+            System.out.println("Connection already established. Sending error.");
+            // Send error
+            sendServerError(fdmw,1,"Error while sending error for a double established server connection warning 1");
+        } else {
+            // First add it
+            ConnectionStruct connectionStruct = new ConnectionStruct(fdmw);
+            serverStrs.add( connectionStruct );
+        }
+        return res;
+    }
+
+    private void sendClientError( ClientStruct cliStr, int errorCode, String ioErrorMessage) {
+        ChatData chdata = new ChatData(0, 6, "");
+        chdata.setErrorCode(errorCode);
+        sendClientMessage(cliStr.getFullDuplexMessageWorker(), chdata, ioErrorMessage);
+    }
+
+    private void sendServerError( FullDuplexMessageWorker full, int errorCode, String ioErrorMessage) {
+        InterServerMessage ism = new InterServerMessage(0,42);
+        ism.setErrorCode(errorCode);
+        sendInterServerMessage(full, ism, ioErrorMessage);
+    }
+
+    private void sendInterServerMessage( FullDuplexMessageWorker full,  InterServerMessage mes, String ioErrorMessage ) {
+        try {
+            full.sendMsg(2, mes);
+        } catch (IOException ioe) {
+            System.out.println(ioErrorMessage);
+            ioe.printStackTrace();
+        }
+    }
+
+    private void sendClientMessage( FullDuplexMessageWorker full, ChatData chatData, String ioErrorMessage ) {
+        try{
+            full.sendMsg(0,chatData);
+        } catch( IOException ioe) {
+            System.out.println(ioErrorMessage);
+            ioe.printStackTrace();
+        }
+    }
 }

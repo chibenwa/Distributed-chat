@@ -5,10 +5,7 @@ import csc4509.FullDuplexMessageWorker;
 /**
  * Created by benwa on 6/5/14.
  */
-public class ClientStruct {
-    private FullDuplexMessageWorker full;
-    private static int cpt = 0;
-    private int id;
+public class ClientStruct extends ConnectionStruct {
     private String pseudo;
     private Boolean pseudoSet = false;
     public Boolean hasPseudo() {
@@ -22,14 +19,6 @@ public class ClientStruct {
         return pseudo;
     }
     public ClientStruct( FullDuplexMessageWorker _full ) {
-        full = _full;
-        cpt++;
-        id = cpt;
-    }
-    public int getId() {
-        return id;
-    }
-    public FullDuplexMessageWorker getFullDuplexMessageWorker() {
-        return full;
+        super( _full );
     }
 }
