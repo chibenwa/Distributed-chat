@@ -12,6 +12,8 @@ public class ServerMain {
         }
         int port = Integer.parseInt(argv[0]);
         ChatServer chatServer = new ChatServer(port);
+        ServerClavierThread serverClavierThread = new ServerClavierThread(chatServer);
+        serverClavierThread.start();
         chatServer.launch();
     }
 

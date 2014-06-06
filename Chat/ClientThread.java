@@ -15,12 +15,12 @@ public class ClientThread extends Thread{
 
     public ClientThread( ClientNetMngr _clientNetMngr) {
         clientNetMngr = _clientNetMngr;
+        sc = new Scanner(System.in);
     }
 
     public void run() {
         /* First ask for pseudo */
         System.out.println("Please enter a pseudo : ");
-        sc = new Scanner(System.in);
         String _pseudo = sc.nextLine();
         setPseudo(_pseudo);
         System.out.println("");

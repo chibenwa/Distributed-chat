@@ -203,18 +203,8 @@ public class ChatServer {
                                     // The client asks for a list of all users
                                     if( cliStr.hasPseudo() ) {
                                         // Ok, we now him, let send it
-                                        String pseudoChunk = "";
-                                        Boolean first = true;
-                                        for( ClientStruct cls : cliStrs) {
-                                            if( first ) {
-                                                first = false;
-                                            } else {
-                                                pseudoChunk += ", ";
-                                            }
-                                            pseudoChunk += cls.getPseudo();
-                                        }
                                         System.out.println("Yes he is authentificated and we can send the user list ( we will really do it ! ) ");
-                                        chdata = new ChatData(0,8,pseudoChunk, cliStr.getPseudo());
+                                        chdata = new ChatData(0,8,buildClientList(), cliStr.getPseudo());
                                         sendClientMessage(fdmw, chdata, "Could not send the user list");
                                     } else {
                                         // Who's that guy? Kick him dude !
@@ -277,6 +267,20 @@ public class ChatServer {
         }
     }
 
+    public String buildClientList() {
+        String pseudoChunk = "";
+        Boolean first = true;
+        for( ClientStruct cls : cliStrs) {
+            if( first ) {
+                first = false;
+            } else {
+                pseudoChunk += ", ";
+            }
+            pseudoChunk += cls.getPseudo();
+        }
+        return pseudoChunk;
+    }
+
     protected void selectorInit() {
         try {
             selector = Selector.open();
@@ -305,7 +309,7 @@ public class ChatServer {
         }
     }
 
-    protected void connectServer( String ipString, int _port) {
+    public void connectServer( String ipString, int _port) {
         InetAddress add;
         try{
             add = InetAddress.getByName(ipString);
@@ -322,6 +326,7 @@ public class ChatServer {
             return;
         }
         FullDuplexMessageWorker fullDuplexMessageWorker = new FullDuplexMessageWorker(chan);
+        ClientStruct str = new ClientStruct(fullDuplexMessageWorker);
         try {
             fullDuplexMessageWorker.configureNonBlocking();
         } catch (IOException ioe) {
@@ -329,18 +334,12 @@ public class ChatServer {
             return;
         }
         try {
-            chan.register(selector, SelectionKey.OP_READ, fullDuplexMessageWorker);
+            chan.register(selector, SelectionKey.OP_READ, str);
         } catch(ClosedChannelException cce) {
             System.out.println("Channel closed while registering channel for inter server communication");
         }
         // Now specify to the server that WE ARE A SERVER ...
-        InterServerMessage ism = new InterServerMessage(0,0);
-        try {
-            fullDuplexMessageWorker.sendMsg(2, "");
-        } catch (IOException ioe) {
-            System.out.println("Can not send a basic Hello I am a server ! ");
-            return;
-        }
+        sendInterServerMessage(fullDuplexMessageWorker, new InterServerMessage(0,0), "Can not send a basic Hello I am a server ! " );
     }
 
     private Boolean isServerConnectionEstablished( FullDuplexMessageWorker fdmw ) {
@@ -357,7 +356,7 @@ public class ChatServer {
         if( res ) {
             System.out.println("Connection already established. Sending error.");
             // Send error
-            sendServerError(fdmw,1,"Error while sending error for a double established server connection warning 1");
+            sendServerError(fdmw, 1, "Error while sending error for a double established server connection warning 1");
         } else {
             // First add it
             ConnectionStruct connectionStruct = new ConnectionStruct(fdmw);
@@ -394,5 +393,28 @@ public class ChatServer {
             System.out.println(ioErrorMessage);
             ioe.printStackTrace();
         }
+    }
+
+    public void launchElection() {
+        // TODO: Adding this stuff soon
+    }
+
+    public String getServerList() {
+        String res = "";
+        Boolean first = true;
+        for( ConnectionStruct cstr : serverStrs ) {
+            if( first ) {
+                first = false;
+            } else {
+                res += ", ";
+            }
+            try {
+                res += cstr.getFullDuplexMessageWorker().getChannel().getRemoteAddress().toString();
+            } catch(IOException ioe) {
+                System.out.println("Error getting remote server address");
+                ioe.printStackTrace();
+            }
+        }
+        return res;
     }
 }
