@@ -164,29 +164,7 @@ public class NetManager {
                         ioe.printStackTrace();
                         return;
                     }
-                    try {
-                        sc.configureBlocking(false);
-                    } catch (IOException ioe) {
-                        System.out.println(loopNB + " Failed to set non blocking for child socket");
-                        ioe.printStackTrace();
-                        return;
-                    }
-                    FullDuplexMessageWorker fdmw = new FullDuplexMessageWorker(sc);
-                    try {
-                        fdmw.configureNonBlocking();
-                    } catch( IOException ioe ) {
-                        System.out.println("FullDuplexMessageWorker can not be configured as non blocking");
-                        return;
-                    }
-                    ClientStruct cliStr = new ClientStruct(fdmw);
-                    // We register on this channel
-                    try {
-                        sc.register(selector, SelectionKey.OP_READ, cliStr);
-                    } catch (ClosedChannelException cce) {
-                        System.out.println(loopNB + " Failed to register read on new channel");
-                        cce.printStackTrace();
-                        return;
-                    }
+                    makeRegistration(sc);
                 } else {
                     if (key.isReadable()) {
                         ClientStruct cliStr = (ClientStruct) key.attachment();
@@ -323,33 +301,12 @@ public class NetManager {
             return;
         }
         System.out.println("Channel opened");
-        FullDuplexMessageWorker fullDuplexMessageWorker = new FullDuplexMessageWorker(chan);
-        ClientStruct str = new ClientStruct(fullDuplexMessageWorker);
-        try {
-            fullDuplexMessageWorker.configureNonBlocking();
-        } catch (IOException ioe) {
-            System.out.println("Can not configure channel server as non blocking");
+        FullDuplexMessageWorker fullDuplexMessageWorker = makeRegistration(chan);
+        if( fullDuplexMessageWorker == null ) {
             return;
         }
-        System.out.println("FullDuplexMessageWorker both created and non blocking");
-        // http://stackoverflow.com/questions/1057224/thread-is-stuck-while-registering-channel-with-selector-in-java-nio-server
-        // More than 2 hours lost and one of the strangest bug I have ever made : https://benwa.minet.net/article/46
-        selectorLock.lock();
-        try{
-            selector.wakeup();
-            try {
-                chan.register(selector, SelectionKey.OP_READ, str);
-            } catch(ClosedChannelException cce) {
-                System.out.println("Channel closed while registering channel for inter server communication");
-            }
-        } finally {
-            selectorLock.unlock();
-        }
-        System.out.println("Channel registered");
         // Now specify to the server that WE ARE A SERVER ...
-        System.out.println("Sending request : Basic hello world, I am a server");
         sendInterServerMessage(fullDuplexMessageWorker, new InterServerMessage(0,0), "Can not send a basic Hello I am a server ! " );
-        System.out.println("Sended");
     }
 
 
@@ -397,7 +354,7 @@ public class NetManager {
 
 
     /*
-    The four following methods are
+    The five following methods are
     always called. They were written
     to improve readability by removing
     exception handling of the logic,
@@ -436,6 +393,31 @@ public class NetManager {
             System.out.println(ioErrorMessage);
             ioe.printStackTrace();
         }
+    }
+
+    private FullDuplexMessageWorker makeRegistration(SocketChannel chan) {
+        FullDuplexMessageWorker fullDuplexMessageWorker = new FullDuplexMessageWorker(chan);
+        ClientStruct str = new ClientStruct(fullDuplexMessageWorker);
+        try {
+            fullDuplexMessageWorker.configureNonBlocking();
+        } catch (IOException ioe) {
+            System.out.println("Can not configure channel server as non blocking");
+            return null;
+        }
+        // http://stackoverflow.com/questions/1057224/thread-is-stuck-while-registering-channel-with-selector-in-java-nio-server
+        // More than 2 hours lost and one of the strangest bug I have ever made : https://benwa.minet.net/article/46
+        selectorLock.lock();
+        try{
+            selector.wakeup();
+            try {
+                chan.register(selector, SelectionKey.OP_READ, str);
+            } catch(ClosedChannelException cce) {
+                System.out.println("Channel closed while registering channel for inter server communication");
+            }
+        } finally {
+            selectorLock.unlock();
+        }
+        return fullDuplexMessageWorker;
     }
 
 
