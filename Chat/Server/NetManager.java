@@ -6,8 +6,6 @@ import Chat.Netmessage.InterServerMessage;
 import Chat.Utils.ClientStruct;
 import Chat.Utils.ConnectionStruct;
 import csc4509.FullDuplexMessageWorker;
-import sun.awt.Mutex;
-
 import java.io.IOException;
 import java.net.*;
 import java.nio.channels.*;
@@ -30,35 +28,12 @@ public class NetManager {
     private ServerSocketChannel ssc;
     private Selector selector;
     private List<ClientStruct> cliStrs;
-    private  List<ConnectionStruct> serverStrs;
+    protected  List<ConnectionStruct> serverStrs;
+    private ElectionHandler electionHandler;
 
-    final ReentrantLock selectorLock = new ReentrantLock();;
+    final ReentrantLock selectorLock = new ReentrantLock();
 
-    // Stuff for elections
-    // If we add servers while an election is taking place, I fear bad things to happen.
-    // We will use a boolean to protect us from launching a new election and adding client while electing someone
-    private Boolean isInElection = false;
-    // A mutex to protect us... Gods !
-    private Mutex electionMutex;
-    // SocketAddress is used instead of pid. Works well until you use NAT, and are not really lucky
-    private SocketAddress caw = null;
-    // The father is a current connection present in serverStr. We use it instead of a Socket address for conviniance ( far much better to send a message )
-    private ConnectionStruct father = null;
-    // Winner have to be compared with caw and p. So that is a SocketAddress.
-    private SocketAddress win = null;
-    // Same thing for p ( we will obtain it once for all )
-    private SocketAddress p = null;
-    // Here comes integer. rec : number of Jeton for current wave received
-    // lrec : number of GAGNANT received
-    int rec = 0;
-    int lrec = 0;
-    /*
-        State :
-         * 0 : sleeping
-         * 1 : looser
-         * 2 : winner
-     */
-    int state = 0;
+
 
 
 
@@ -75,7 +50,7 @@ public class NetManager {
         port = _port;
         cliStrs = new ArrayList<ClientStruct>();
         serverStrs = new ArrayList<ConnectionStruct>();
-        electionMutex = new Mutex();
+        electionHandler = new ElectionHandler(this);
     }
 
 
@@ -112,13 +87,11 @@ public class NetManager {
             ssc.configureBlocking(false);
             ServerSocket ss = ssc.socket();
             InetSocketAddress add = new InetSocketAddress(port);
-            // We init p used for elections
-            p = add;
             ss.bind(add);
+            electionHandler.setP(add);
         } catch (IOException se) {
             System.out.println("Failed to create server");
             se.printStackTrace();
-            return;
         }
     }
 
@@ -177,7 +150,7 @@ public class NetManager {
                                 break;
                             case 1:
                                 // Here this is a message related to elections
-                                manageElection(cliStr);
+                                electionHandler.manageInput(cliStr);
                                 break;
                             case 2:
                                 // Here we get a server message
@@ -240,7 +213,6 @@ public class NetManager {
         } catch (ClosedChannelException cce) {
             System.out.println("Failed to register selector for main server");
             cce.printStackTrace();
-            return;
         }
     }
 
@@ -276,14 +248,14 @@ public class NetManager {
      */
 
     public void connectServer( String ipString, int _port) {
-        electionMutex.lock();
+        electionHandler.lock();
         System.out.println("Lock succeed");
-        if( isInElection) {
-            electionMutex.unlock();
+        if( electionHandler.getIsInElection()) {
+            electionHandler.unlock();
             System.out.println("We are in a f***ing election dude. No way...");
             return;
         }
-        electionMutex.unlock();
+        electionHandler.unlock();
         System.out.println("Passed unlock succeed");
         InetAddress add;
         try{
@@ -425,176 +397,13 @@ public class NetManager {
 
         Here follows election stuff.
 
-        TODO I think I will put it in a separated class !
-
-
      */
 
-    public void launchElection() {
-        // Will be call by an other thread -> mutex !
-        electionMutex.lock();
-        if( isInElection ) {
-            electionMutex.unlock();
-            System.out.println("We are in an election process, we can not generate a new election dude...");
-            return;
-        }
-        electionMutex.unlock();
-        // Ok, do some init
-        win = null;
-        father = null;
-        caw = p;
-        rec = 0;
-        lrec = 0;
-        state = 0;
-        ElectionToken electionToken = new ElectionToken(0);
-        electionToken.setR(p);
-        broadcastToken( electionToken, "Problem generating an election");
-    }
 
-    private void sendElectionToken( ConnectionStruct connectionStruct, ElectionToken electionToken, String ioErrorMessage ) {
-        try{
-            connectionStruct.getFullDuplexMessageWorker().sendMsg(1,electionToken);
-        } catch(IOException ioe) {
-            System.out.println(ioErrorMessage);
-        }
-    }
 
-    private void broadcastToken( ElectionToken electionToken, String ioErrorMessage) {
-        for( ConnectionStruct connectionStruct : serverStrs) {
-            try {
-                connectionStruct.getFullDuplexMessageWorker().sendMsg(1, electionToken);
-            } catch (IOException ioe) {
-                System.out.println(ioErrorMessage);
-            }
-        }
-    }
 
-    public void displayElectoralState() {
-        switch (state) {
-            case 0:
-                System.out.println("Election taking place");
-                break;
-            case 1:
-                System.out.println("LoOoOoOoOoOoser BoOoOoOoOoh");
-                break;
-            case 2:
-                System.out.println("We are currently elected");
-                break;
-            default:
-                System.out.println("Unknown state.. Dude, you have to worry about your stupid programm..");
-                break;
-        }
-    }
 
-    private void manageElection(ClientStruct cliStr) {
-        FullDuplexMessageWorker fdmw = cliStr.getFullDuplexMessageWorker();
-        // Oh dude here this is an election package !
-        ElectionToken electionToken ;
-        try{
-            electionToken = (ElectionToken) fdmw.getData();
-        }catch( IOException ioe) {
-            System.out.println("Cannot retreive Election data");
-            return;
-        }
-        SocketAddress r = electionToken.getR();
-        switch (electionToken.getType()) {
-            case 0:
-                electionMutex.lock();
-                if( !isInElection) {
-                    System.out.println("Someone else triggered an election. Locking...");
-                    isInElection = true;
-                }
-                electionMutex.unlock();
-                // JETON RECEIVED
-                System.out.println("We have received a Jeton");
-                if( caw == null ) {
-                    System.out.println("Initialising for this election");
-                    // First message received by a non candidate process. We need to do some init :
-                    state = 0;
-                    rec = 0;
-                    lrec = 0;
-                    father = null;
-                    win = null;
-                }
-                if(caw == null || r.toString().compareTo( caw.toString() ) < 0 ) {
-                    System.out.println("Stronger wave founded. leaving the current one.");
-                    // Our message is weaker than the other. We are replaced.
-                    caw = r;
-                    rec = 0;
-                    // Luck, I am your father !
-                    father = cliStr;
-                    // Propagate the stronger wave
-                    ElectionToken newToken = new ElectionToken(0);
-                    newToken.setR(r);
-                    System.out.println("Propagatting our new wave");
-                    for( ConnectionStruct connectionStruct : serverStrs) {
-                        if( connectionStruct != father) {
-                            sendElectionToken( connectionStruct, newToken, "Error while sending the new token");
-                        }
-                    }
-                }
-                if( caw.toString().compareTo( r.toString() ) == 0 ) {
-                    System.out.println("Answer to our current wave received");
-                    rec++;
-                    if( rec == serverStrs.size() ) {
-                        System.out.print("Current Jeton wave completed : ");
-                        if( caw.toString().compareTo(p.toString()) == 0) {
-                            // Here we actually won, so we have to broadcast it.
-                            System.out.println(" We have won... Broadcast it ;-)");
-                            ElectionToken winner = new ElectionToken(1);
-                            winner.setR(p);
-                            broadcastToken(winner,"Error while broadcasting our victory");
-                        } else {
-                            System.out.println("Answer dad");
-                            // All our neighbours have answered us so we can reply to our father
-                            ElectionToken answer = new ElectionToken(0);
-                            answer.setR(caw);
-                            sendElectionToken(father,answer, "Answer while returning token to father");
-                        }
-                    }
-                }
-                break;
-            case 1:
-                if( lrec < serverStrs.size()+1 ) {
-                    // The previous if prevent us from infinit loop with Gagnant broadcast !
-                    // GAGNANT RECEIVED
-                    System.out.println("We received a GAGNANT");
-                    if (lrec == 0 || r.toString().compareTo(p.toString()) != 0) {
-                        // Broadcast that we loose
-                        System.out.println("We received somebody else GAGNANT");
-                        ElectionToken winner = new ElectionToken(1);
-                        winner.setR(r);
-                        broadcastToken(winner, "Error while broadcasting somebody else victory");
-                    }
-                    // Increment the GAGNANT token received
-                    lrec++;
-                    // And tell who is the winner !
-                    win = r;
-                    if (lrec == serverStrs.size() + 1) {
-                        System.out.println("End of the Election");
-                        // End of the election.
-                        if (win.toString().compareTo(p.toString()) == 0) {
-                            System.out.println("We won");
-                            state = 2;
-                        } else {
-                            System.out.println("We lost");
-                            state = 1;
-                        }
-                        electionMutex.lock();
-                        // We are no more in an electoral state. Unlock it dude.
-                        isInElection = false;
-                        // Here we are preparing stuff for next election
-                        // caw must be null t the beginning of the election for not candidates. In other case, the behaviour can't be predicted.
-                        caw = null;
-                        electionMutex.unlock();
-                    }
-                }
-                break;
-            default:
 
-                break;
-        }
-    }
 
 
     /*
@@ -804,14 +613,14 @@ public class NetManager {
         switch (incomingMessage.getType()) {
             case 0:
                 System.out.println("DBG Rcv 0");
-                electionMutex.lock();
-                if( isInElection ) {
-                    electionMutex.unlock();
+                electionHandler.lock();
+                if( electionHandler.getIsInElection() ) {
+                    electionHandler.unlock();
                     // We are in election, we can not add a server !
                     System.out.println("Server add demand while in election. Sending error");
                     sendServerError(fdmw,3, "IO ERROR SERVER CODE 3");
                 } else {
-                    electionMutex.unlock();
+                    electionHandler.unlock();
                     System.out.println("Request for server connection received");
                     // Someone make a demand to be added to servers.
                     if (handleServerConnectionRequest(cliStr)) {
@@ -823,13 +632,13 @@ public class NetManager {
                 break;
             case 1:
                 System.out.println("DBG Rcv 1");
-                electionMutex.lock();
-                if(isInElection) {
-                    electionMutex.unlock();
+                electionHandler.lock();
+                if(electionHandler.getIsInElection()) {
+                    electionHandler.unlock();
                     System.out.println("Server add reply while in election. Sending error");
                     sendServerError(fdmw,4, "IO ERROR SERVER CODE 4");
                 } else {
-                    electionMutex.unlock();
+                    electionHandler.unlock();
                     System.out.println("Our request for opening a new connection to another server was answered");
                     // Someone answered our demand for server connection. Ok, so we are well connected. Add the connection to the servers connections.
                     handleServerConnectionRequest(cliStr);
@@ -861,4 +670,17 @@ public class NetManager {
                 break;
         }
     }
+
+    /*
+        We need to propagate a few methods to our ElectionHandler
+     */
+
+    public void launchElection() {
+        electionHandler.launchElection();
+    }
+
+    public void displayElectoralState() {
+        electionHandler.displayElectoralState();
+    }
+
 }

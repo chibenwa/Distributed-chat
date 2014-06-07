@@ -5,7 +5,7 @@ import java.util.Scanner;
 /**
  * Created by benwa on 6/7/14.
  */
-public class ClavierThread extends Thread{
+public abstract class ClavierThread extends Thread{
 
     protected Scanner sc;
     protected Boolean loopCondition = true;

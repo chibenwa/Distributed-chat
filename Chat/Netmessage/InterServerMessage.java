@@ -1,5 +1,7 @@
 package Chat.Netmessage;
 
+import java.net.SocketAddress;
+
 /**
  * Created by benwa on 6/7/14.
  */
@@ -25,6 +27,8 @@ public class InterServerMessage extends NetMessage {
 
      */
 
+    private SocketAddress identifier;
+
     public InterServerMessage(int _seq, int _type) {
         super( _seq, _type);
     }
@@ -41,5 +45,15 @@ public class InterServerMessage extends NetMessage {
                 System.out.println("Unhandled error");
                 break;
         }
+    }
+
+    /*
+        Will be used to identify a server during the diffusion process
+     */
+    public void setIdentifier( SocketAddress _identifier ) {
+        identifier = _identifier;
+    }
+    public SocketAddress getIdentifier() {
+        return identifier;
     }
 }

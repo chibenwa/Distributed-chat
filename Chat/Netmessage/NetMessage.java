@@ -1,12 +1,13 @@
 package Chat.Netmessage;
 
 import java.io.Serializable;
+import java.net.SocketAddress;
 import java.util.Date;
 
 /**
  * Created by benwa on 6/7/14.
  */
-public class NetMessage implements Serializable{
+public abstract class NetMessage implements Serializable{
     private Date date;
     private int seq;
     private int type;
