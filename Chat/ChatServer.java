@@ -304,7 +304,7 @@ public class ChatServer {
                                                 System.out.print("Current Jeton wave completed : ");
                                                 if( caw.toString().compareTo(p.toString()) == 0) {
                                                     // Here we actually won, so we have to broadcast it.
-                                                    System.out.print(" We have won... Broadcast it ;-)");
+                                                    System.out.println(" We have won... Broadcast it ;-)");
                                                     ElectionToken winner = new ElectionToken(1);
                                                     winner.setR(p);
                                                     broadcastToken(winner,"Error while broadcasting our victory");
@@ -319,38 +319,39 @@ public class ChatServer {
                                         }
                                         break;
                                     case 1:
-                                        // GAGNANT RECEIVED
-                                        System.out.println("We received a GAGNANT");
-                                        if(lrec == 0 || r.toString().compareTo(p.toString()) != 0) {
-                                            // Broadcast that we loose
-                                            System.out.println("We received somebody else GAGNANT");
-                                            ElectionToken winner = new ElectionToken(1);
-                                            winner.setR(r);
-                                            broadcastToken(winner, "Error while broadcasting somebody else victory");
-                                        }
-                                        // Increment the GAGNANT token received
-                                        lrec++;
-                                        // And tell who is the winner !
-                                        win = r;
-                                        if( lrec == serverStrs.size() ) {
-                                            System.out.println("End of the Election");
-                                            // End of the election.
-                                            if( win.toString().compareTo(p.toString()) == 0 ) {
-                                                System.out.println("We won");
-                                                state = 2;
-                                            } else {
-                                                System.out.println("We lost");
-                                                state = 1;
+                                        if( lrec < serverStrs.size()+1 ) {
+                                            // GAGNANT RECEIVED
+                                            System.out.println("We received a GAGNANT");
+                                            if (lrec == 0 || r.toString().compareTo(p.toString()) != 0) {
+                                                // Broadcast that we loose
+                                                System.out.println("We received somebody else GAGNANT");
+                                                ElectionToken winner = new ElectionToken(1);
+                                                winner.setR(r);
+                                                broadcastToken(winner, "Error while broadcasting somebody else victory");
                                             }
-                                            electionMutex.lock();
-                                            // We are no more in an electoral state. Unlock it dude.
-                                            isInElection = false;
-                                            // Here we are preparing stuff for next election
-                                            // caw must be null t the beginning of the election for not candidates. In other case, the behaviour can't be predicted.
-                                            caw = null;
-                                            electionMutex.unlock();
+                                            // Increment the GAGNANT token received
+                                            lrec++;
+                                            // And tell who is the winner !
+                                            win = r;
+                                            if (lrec == serverStrs.size() + 1) {
+                                                System.out.println("End of the Election");
+                                                // End of the election.
+                                                if (win.toString().compareTo(p.toString()) == 0) {
+                                                    System.out.println("We won");
+                                                    state = 2;
+                                                } else {
+                                                    System.out.println("We lost");
+                                                    state = 1;
+                                                }
+                                                electionMutex.lock();
+                                                // We are no more in an electoral state. Unlock it dude.
+                                                isInElection = false;
+                                                // Here we are preparing stuff for next election
+                                                // caw must be null t the beginning of the election for not candidates. In other case, the behaviour can't be predicted.
+                                                caw = null;
+                                                electionMutex.unlock();
+                                            }
                                         }
-
                                         break;
                                     default:
 
