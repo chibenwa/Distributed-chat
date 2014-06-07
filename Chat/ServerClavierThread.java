@@ -48,6 +48,10 @@ public class ServerClavierThread extends Thread{
                     // Re initialize network dude
                     chatServer.reInitNetwork();
                     break;
+                case 5:
+                    // Display Electoral status
+                    chatServer.displayElectoralState();
+                    break;
                 default:
                     System.out.println("Command unrecognise...");
                     break;
@@ -63,6 +67,7 @@ public class ServerClavierThread extends Thread{
         System.out.println("2 : Launch an election");
         System.out.println("3 : Display servers connected to this server");
         System.out.println("4 : Re initialize network on this node ( all clients' and servers' connections will be closed )");
+        System.out.println("5 : Display electoral state");
         System.out.println();
     }
 

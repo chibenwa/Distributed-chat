@@ -252,12 +252,7 @@ public class ChatServer {
                             }
                         } else {
                             if( fdmw.getMessType() == 1 ) {
-                                electionMutex.lock();
-                                if( !isInElection) {
-                                    System.out.println("Someone else triggered an election. Locking...");
-                                    isInElection = true;
-                                }
-                                electionMutex.unlock();
+
                                 // Oh dude here this is an election package !
                                 ElectionToken electionToken;
                                 try{
@@ -269,6 +264,12 @@ public class ChatServer {
                                 SocketAddress r = electionToken.getR();
                                 switch (electionToken.getType()) {
                                     case 0:
+                                        electionMutex.lock();
+                                        if( !isInElection) {
+                                            System.out.println("Someone else triggered an election. Locking...");
+                                            isInElection = true;
+                                        }
+                                        electionMutex.unlock();
                                         // JETON RECEIVED
                                         System.out.println("We have received a Jeton");
                                         if( caw == null ) {
@@ -320,6 +321,7 @@ public class ChatServer {
                                         break;
                                     case 1:
                                         if( lrec < serverStrs.size()+1 ) {
+                                            // The previous if prevent us from infinit loop with Gagnant broadcast !
                                             // GAGNANT RECEIVED
                                             System.out.println("We received a GAGNANT");
                                             if (lrec == 0 || r.toString().compareTo(p.toString()) != 0) {
@@ -662,4 +664,20 @@ public class ChatServer {
         }
     }
 
+    public void displayElectoralState() {
+        switch (state) {
+            case 0:
+                System.out.println("Election taking place");
+                break;
+            case 1:
+                System.out.println("LoOoOoOoOoOoser BoOoOoOoOoh");
+                break;
+            case 2:
+                System.out.println("We are currently elected");
+                break;
+            default:
+                System.out.println("Unknown state.. Dude, you have to worry about your stupid programm..");
+                break;
+        }
+    }
 }
