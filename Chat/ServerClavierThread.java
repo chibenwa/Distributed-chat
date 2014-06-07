@@ -29,9 +29,9 @@ public class ServerClavierThread extends Thread{
                     break;
                 case 1:
                     // Connect to an other server
-                    System.out.println("Enter the IP address of the distant server : ");
+                    System.out.print("Enter the IP address of the distant server : ");
                     String ipString = sc.nextLine();
-                    System.out.println();
+                    System.out.print("Now enter the port you want to connect to : ");
                     int port = sc.nextInt();
                     chatServer.connectServer(ipString, port);
                     break;

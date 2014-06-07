@@ -11,6 +11,8 @@ public class InterServerMessage extends NetMessage {
         Type 0 : Hello I am a server...
         Type 1 : I noticed that you are a server !
         Type 2 : Demand to close connection ...
+        Type 3 : Add demand received while in election. Please try later.
+        Type 4 : Add answer received while in election. Please try later.
         Type 42 : Error
      */
 
