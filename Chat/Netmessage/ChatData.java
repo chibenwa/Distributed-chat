@@ -15,9 +15,9 @@ public class ChatData extends NetMessage {
      * Type 3 : Join notification
      * Type 4 : Leave notification
      * Type 5 : Deconnection request
-     * Type 6 : Errors notifications
      * Type 7 : Demand for a list of user
      * Type 8 : Answer to a list of user
+     * Type 42 : Errors notifications
      */
     private String pseudo; // set by server only
     private Boolean pseudoSet;

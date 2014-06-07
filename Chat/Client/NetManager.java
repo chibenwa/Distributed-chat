@@ -100,18 +100,6 @@ public class NetManager {
                     case 5:
                         System.out.println("Why did the server send us a disconnection request ?");
                         break;
-                    case 6:
-                        // We did something wrong and here came the error
-                        if( chdata.hasError()) {
-                            if (chdata.getErrorCode() == 1) {
-                                System.out.println("The login is already used on this server");
-                                hasLoginResponse = true;
-                                // We didn't set hasCompletedLogin so the other thread will know that the login is already used
-                            }
-                            // Display the error and continue what we were doing !
-                            chdata.printErrorCode();
-                        }
-                        break;
                     case 7:
                         System.out.println("Why did the server send us a user list request ?");
                         break;
@@ -121,9 +109,21 @@ public class NetManager {
                             waitingUserList = false;
                         } else {
                             // Inform the server he made a mistake : we never asked for what he provided us...
-                            ChatData informServer = new ChatData(0,6,"");
+                            ChatData informServer = new ChatData(0,42,"");
                             informServer.setErrorCode(9);
                             sendMessage(informServer, "Problem telling the server we didn't need the user list");
+                        }
+                        break;
+                    case 42:
+                        // We did something wrong and here came the error
+                        if( chdata.hasError()) {
+                            if (chdata.getErrorCode() == 1) {
+                                System.out.println("The login is already used on this server");
+                                hasLoginResponse = true;
+                                // We didn't set hasCompletedLogin so the other thread will know that the login is already used
+                            }
+                            // Display the error and continue what we were doing !
+                            chdata.printErrorCode();
                         }
                         break;
                     default:

@@ -768,13 +768,6 @@ public class NetManager {
                 // Remove the client
                 cliStrs.remove(cliStr);
                 break;
-            case 6:
-                // The client send us an error
-                if (rcv.hasError()) {
-                    // Yes we have an error. Print it :
-                    rcv.printErrorCode();
-                }
-                break;
             case 7:
                 System.out.println("Man, a user list request !");
                 // The client asks for a list of all users
@@ -794,6 +787,13 @@ public class NetManager {
                 // The user send us the user list. That is stupid ! Let's go tell him
                 System.out.println("User send us a list of pseudo");
                 sendClientError(cliStr, 8, "Failed to send error for a client who send us a user list");
+                break;
+            case 42:
+                // The client send us an error
+                if (rcv.hasError()) {
+                    // Yes we have an error. Print it :
+                    rcv.printErrorCode();
+                }
                 break;
             default:
         }
