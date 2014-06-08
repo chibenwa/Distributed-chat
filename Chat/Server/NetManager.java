@@ -26,15 +26,20 @@ public class NetManager {
     Class data ...
      */
 
+    // Things initialized in a mono threaded environment and then only read.
     private int port;
     private ServerSocketChannel ssc;
-    private Selector selector;
-    private List<ClientStruct> cliStrs;
-    protected  List<ConnectionStruct> serverStrs;
-    private ElectionHandler electionHandler;
-    private SocketAddress p;
-    final ReentrantLock selectorLock = new ReentrantLock();
 
+    private SocketAddress p;
+
+
+    // Thread safe
+    private ElectionHandler electionHandler;
+    final ReentrantLock selectorLock = new ReentrantLock();
+    private Selector selector;
+
+    // Things that have to be protected more efficiently are in a separated class
+    private State state;
 
 
 
@@ -50,8 +55,7 @@ public class NetManager {
 
     public NetManager(int _port) {
         port = _port;
-        cliStrs = new ArrayList<ClientStruct>();
-        serverStrs = new ArrayList<ConnectionStruct>();
+        state = new State();
         electionHandler = new ElectionHandler(this);
     }
 
@@ -173,29 +177,7 @@ public class NetManager {
         }
     }
 
-    /*
-    A small utility method : we construct the list of the client directly connected to this server.
 
-    Two usage nowadays :
-
-        - Display it on clavier demand ( it will stay for debug purpose )
-        - Answer client to this question : who is connected directly to this server
-
-     */
-
-    public String buildClientList() {
-        String pseudoChunk = "";
-        Boolean first = true;
-        for( ClientStruct cls : cliStrs) {
-            if( first ) {
-                first = false;
-            } else {
-                pseudoChunk += ", ";
-            }
-            pseudoChunk += cls.getPseudo();
-        }
-        return pseudoChunk;
-    }
 
 
     /*
@@ -221,24 +203,7 @@ public class NetManager {
 
 
 
-    /*
-        Another utility function,
-        which will send a message
-        to all clients connected
-        and registrated to our
-        server.
-     */
 
-    protected void broadcast( ChatData mes ) {
-        for ( ClientStruct cls : cliStrs) {
-            try {
-                cls.getFullDuplexMessageWorker().sendMsg(0, mes);
-            } catch( IOException ioe) {
-                System.out.println("Failed to broadcast message");
-                return;
-            }
-        }
-    }
 
 
     /*
@@ -284,25 +249,6 @@ public class NetManager {
         sendInterServerMessage(fullDuplexMessageWorker, new InterServerMessage(0,0), "Can not send a basic Hello I am a server ! " );
     }
 
-
-    /*
-        Utility function used twice :
-
-        Tells us if we already
-        registered the given
-        connection as a server
-     */
-
-    private Boolean isServerConnectionEstablished( FullDuplexMessageWorker fdmw ) {
-        for( ConnectionStruct conStr : serverStrs) {
-            if( conStr.getFullDuplexMessageWorker() == fdmw ) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
     /*
         Utility function. Called twice.
 
@@ -316,13 +262,13 @@ public class NetManager {
      */
 
     private Boolean handleServerConnectionRequest(ClientStruct cliStr) {
-        Boolean res = isServerConnectionEstablished(cliStr.getFullDuplexMessageWorker());
+        Boolean res = state.isServerConnectionEstablished(cliStr.getFullDuplexMessageWorker());
         if( res ) {
             System.out.println("Connection already established. Sending error.");
             // Send error
             sendServerError(cliStr.getFullDuplexMessageWorker(), 1, "Error while sending error for a double established server connection warning 1");
         } else {
-            serverStrs.add( cliStr );
+            state.addServer(cliStr);
         }
         return res;
     }
@@ -398,34 +344,6 @@ public class NetManager {
     }
 
     /*
-        Utility function...
-
-        It is providing us our the
-        connected list of servers
-        recognised as servers
-     */
-
-    public String getServerList() {
-        String res = "";
-        Boolean first = true;
-        for( ConnectionStruct cstr : serverStrs ) {
-            if( first ) {
-                first = false;
-            } else {
-                res += ", ";
-            }
-            try {
-                res += cstr.getFullDuplexMessageWorker().getChannel().getRemoteAddress().toString();
-            } catch(IOException ioe) {
-                System.out.println("Error getting remote server address");
-                ioe.printStackTrace();
-            }
-        }
-        return res;
-    }
-
-
-    /*
         It closed all the connections registered
         as both clients and servers. It give us
         a new clean debug environment without
@@ -437,18 +355,7 @@ public class NetManager {
     */
 
     public void reInitNetwork() {
-        for( ConnectionStruct cstr : serverStrs) {
-            sendInterServerMessage( cstr.getFullDuplexMessageWorker(), new InterServerMessage(0,2),"Can not send a disconnection demand" );
-        }
-        for( ClientStruct clientStruct : cliStrs) {
-            try {
-                clientStruct.getFullDuplexMessageWorker().close();
-            } catch (IOException ioe) {
-                System.out.println("Can not close client connection");
-            }
-        }
-        serverStrs.clear();
-        cliStrs.clear();
+        state.reInitNetwork();
     }
 
 
@@ -483,21 +390,15 @@ public class NetManager {
                     break;
                 }
                 // Check if the name is already used
-                Boolean alredyExist = false;
-                for (ClientStruct cls : cliStrs) {
-                    if (cls.getPseudo().equals(rcv.getPseudo())) {
-                        alredyExist = true;
-                    }
-                }
-                if (!alredyExist) {
+                if ( ! state.isPseudoTaken(rcv.getPseudo()) ) {
                     System.out.println("Pseudo available");
                     // But first tell the client he was accepted
                     sendClientMessage(fdmw, new ChatData(0, 1, "", rcv.getPseudo()), " Failed to send ack for a pseudo demand");
                     // Store the login
                     cliStr.setPseudo(rcv.getPseudo());
-                    cliStrs.add(cliStr);
+                    state.addClient(cliStr);
                     // And notify every one
-                    broadcast(new ChatData(0, 3, "", rcv.getPseudo()));
+                    state.broadcast(new ChatData(0, 3, "", rcv.getPseudo()));
                     break;
                 } else {
                     // We can not allocate the pseudo as it is already taken. Notify Client.
@@ -513,7 +414,7 @@ public class NetManager {
                 // Broadcast it
                 if (cliStr.hasPseudo()) {
                     System.out.println("new message content " + rcv.getMessage());
-                    broadcast(new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo()));
+                    state.broadcast(new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo()));
                 } else {
                     System.out.println("Need pseudo man");
                     // No pseudo set for this operation, even if it is required. Send an error.
@@ -538,7 +439,7 @@ public class NetManager {
                 System.out.println("Deconnection request handled");
                 if (cliStr.hasPseudo()) {
                     chdata = new ChatData(0, 4, "", cliStr.getPseudo());
-                    broadcast(chdata);
+                    state.broadcast(chdata);
                 }
                 // Close socket
                 try {
@@ -548,7 +449,7 @@ public class NetManager {
                     ioe.printStackTrace();
                 }
                 // Remove the client
-                cliStrs.remove(cliStr);
+                state.removeClient(cliStr);
                 break;
             case 7:
                 System.out.println("Man, a user list request !");
@@ -556,7 +457,7 @@ public class NetManager {
                 if (cliStr.hasPseudo()) {
                     // Ok, we now him, let send it
                     System.out.println("Yes he is authentificated and we can send the user list ( we will really do it ! ) ");
-                    chdata = new ChatData(0, 8, buildClientList(), cliStr.getPseudo());
+                    chdata = new ChatData(0, 8, state.buildClientList(), cliStr.getPseudo());
                     sendClientMessage(fdmw, chdata, "Could not send the user list");
                 } else {
                     // Who's that guy? Kick him dude !
@@ -640,17 +541,7 @@ public class NetManager {
                 break;
             case 2:
                 // Remote server demands us to close the connection. Let's do it
-                Boolean present = false;
-                ConnectionStruct toRemove = null;
-                for( ConnectionStruct cstr : serverStrs) {
-                    if( cstr.getFullDuplexMessageWorker() == fdmw ) {
-                        present = true;
-                        toRemove = cstr;
-                    }
-                }
-                if(present) {
-                    serverStrs.remove(toRemove);
-                }
+                state.removeServer(cliStr);
                 try {
                     fdmw.close();
                 } catch(IOException ioe) {
@@ -696,7 +587,7 @@ public class NetManager {
             System.out.println("============================ Set server for both unelected networks");
             electionHandler.launchElection();
         } else {
-            if( electionHandler.getWin() == null && serverStrs.size() == 1 ) {
+            if( electionHandler.getWin() == null && state.getNbConnectedServers() == 1 ) {
                 // We are connected to a network that have an elected node
                 // We are alone. So we can join it with no fear and no complexity added
                 System.out.println("================================ Joining electoral system for both networks");
@@ -720,5 +611,17 @@ public class NetManager {
                 electionHandler.launchElection();
             }
         }
+    }
+
+    protected State getState() {
+        return state;
+    }
+
+    public String buildClientList() {
+        return state.buildClientList();
+    }
+
+    public String getServerList() {
+        return state.getServerList();
     }
 }

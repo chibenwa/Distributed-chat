@@ -26,11 +26,13 @@ public class Main {
     I put here my roadMap :
 
     // TODO 1 : Isolate Server and Client State in an other Class protected by mutex
-    // TODO 2 : Joining notifications !!! -> some algorithm work
-    // TODO 3 : Echo to retrieve trivially client list
-    // TODO 4 : Echo to retrieve trivially server list
-    // TODO 5 : Spare connections for clients with switching on server fault !
-    // TODO 6 : Causal diffusion for chat messages
-    // TODO 7 : P2P chat from combining both server and client
+    // TODO 2 : Server joining notifications for causal diffusion variables !!! -> some algorithm work
+    // TODO 3 : Rdiffusion for client join and leave...
+    // TODO 4 : Echo to retrieve trivially client list
+    // TODO 5 : Echo to retrieve trivially server list
+    // TODO 6 : Spare connections for clients with switching on server fault !
+    // TODO 7 : Causal diffusion for chat messages
+    // TODO 8 : P2P chat from combining both server and client
+    // TODO 9 : Private messages
 
  */
