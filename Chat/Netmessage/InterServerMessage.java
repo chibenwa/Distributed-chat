@@ -1,5 +1,6 @@
 package Chat.Netmessage;
 
+import java.io.Serializable;
 import java.net.SocketAddress;
 
 /**
@@ -15,8 +16,7 @@ public class InterServerMessage extends NetMessage {
         Type 0 : Hello I am a server...
         Type 1 : I noticed that you are a server !
         Type 2 : Demand to close connection ...
-        Type 3 : Add demand received while in election. Please try later.
-        Type 4 : Add answer received while in election. Please try later.
+        Type 3 : R diffusion of a message
         Type 42 : Error
      */
 
@@ -26,7 +26,18 @@ public class InterServerMessage extends NetMessage {
 
         0 : No error
         1 : The server already established a connection with the distant server. Making a new one is both pointless AND dangerous
+        3 : Add demand received while in election. Please try later.
+        4 : Add answer received while in election. Please try later.
 
+     */
+
+    private int subType = 0;
+    private Serializable message;
+
+    /*
+        Type 0 : no SubType
+        Type 1 : Client join
+        Type 2 : Client leave
      */
 
     // A unique identifier to identify the server this message is coming from
@@ -39,6 +50,11 @@ public class InterServerMessage extends NetMessage {
         super( _seq, _type);
     }
 
+    public InterServerMessage(int _seq, int _type, int _subType) {
+        super( _seq, _type);
+        subType = _subType;
+    }
+
     public void printErrorCode() {
         switch (errorCode) {
             case 0 :
@@ -46,6 +62,12 @@ public class InterServerMessage extends NetMessage {
                 break;
             case 1 :
                 System.out.println("The server already established a connection with the distant server. Making a new one is both pointless AND dangerous");
+                break;
+            case 3 :
+                System.out.println("Add demand received while in election. Please try later.");
+                break;
+            case 4 :
+                System.out.println("Add answer received while in election. Please try later.");
                 break;
             default:
                 System.out.println("Unhandled error");
@@ -67,5 +89,12 @@ public class InterServerMessage extends NetMessage {
     }
     public SocketAddress getElectionWinner() {
         return electionWinner;
+    }
+    public int getSubType(){ return subType; }
+    public void setMessage( Serializable _message) {
+        message = _message;
+    }
+    public Serializable getMessage() {
+        return message;
     }
 }

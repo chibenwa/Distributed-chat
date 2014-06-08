@@ -1,17 +1,14 @@
 package Chat.Server;
 
 import Chat.Netmessage.ChatData;
-import Chat.Netmessage.ElectionToken;
+
 import Chat.Netmessage.InterServerMessage;
 import Chat.Utils.ClientStruct;
-import Chat.Utils.ConnectionStruct;
 import csc4509.FullDuplexMessageWorker;
 import java.io.IOException;
 import java.net.*;
 import java.nio.channels.*;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -22,10 +19,6 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class NetManager {
 
-    /*
-    Class data ...
-     */
-
     // Things initialized in a mono threaded environment and then only read.
     private int port;
     private ServerSocketChannel ssc;
@@ -35,13 +28,12 @@ public class NetManager {
 
     // Thread safe
     private ElectionHandler electionHandler;
+    private RBroadcastManager rBroadcastManager;
     final ReentrantLock selectorLock = new ReentrantLock();
     private Selector selector;
 
     // Things that have to be protected more efficiently are in a separated class
     private State state;
-
-
 
 
     /*
@@ -57,6 +49,7 @@ public class NetManager {
         port = _port;
         state = new State();
         electionHandler = new ElectionHandler(this);
+        rBroadcastManager = new RBroadcastManager(this);
     }
 
 
@@ -95,6 +88,7 @@ public class NetManager {
             InetSocketAddress add = new InetSocketAddress(port);
             ss.bind(add);
             electionHandler.setP(add);
+            rBroadcastManager.setOurAddress(add);
             p = add;
         } catch (IOException se) {
             System.out.println("Failed to create server");
@@ -178,8 +172,6 @@ public class NetManager {
     }
 
 
-
-
     /*
         Basic stuff with Selector
         initialisation.
@@ -200,10 +192,6 @@ public class NetManager {
             cce.printStackTrace();
         }
     }
-
-
-
-
 
 
     /*
@@ -398,7 +386,13 @@ public class NetManager {
                     cliStr.setPseudo(rcv.getPseudo());
                     state.addClient(cliStr);
                     // And notify every one
-                    state.broadcast(new ChatData(0, 3, "", rcv.getPseudo()));
+
+                    if( state.getStandAlone() ) {
+                        // No need to use a complex diffusion algorithm, we are stand alone...
+                        state.broadcast(new ChatData(0, 3, "", rcv.getPseudo()));
+                    } else {
+                        sendRClientJoin(rcv.getPseudo());
+                    }
                     break;
                 } else {
                     // We can not allocate the pseudo as it is already taken. Notify Client.
@@ -439,7 +433,12 @@ public class NetManager {
                 System.out.println("Deconnection request handled");
                 if (cliStr.hasPseudo()) {
                     chdata = new ChatData(0, 4, "", cliStr.getPseudo());
-                    state.broadcast(chdata);
+                    if( state.getStandAlone() ) {
+                        // No need to use a complex diffusion algorithm, we are stand alone...
+                        state.broadcast(chdata);
+                    } else {
+                        sendRClientLeave(rcv.getPseudo());
+                    }
                 }
                 // Close socket
                 try {
@@ -547,6 +546,13 @@ public class NetManager {
                 } catch(IOException ioe) {
                     System.out.println("We could not disconnect server as requested...");
                 }
+            case 3:
+                // R diffusion message
+                if( rBroadcastManager.manageInput( incomingMessage) ) {
+                    // We have to process this message : it was accepted
+                    manageServerMessageSubtype(incomingMessage);
+                }
+                break;
             case 42:
                 // Error code : lets display it
                 if( incomingMessage.hasError() ) {
@@ -623,5 +629,42 @@ public class NetManager {
 
     public String getServerList() {
         return state.getServerList();
+    }
+
+    private void manageServerMessageSubtype( InterServerMessage incomingMessage) {
+        ChatData chatData;
+        switch (incomingMessage.getSubType() ) {
+            case 0:
+                System.out.println("Not a message set up for Diffusion algoritms : Lack of subtype");
+                break;
+            case 1:
+                // Client joining notification
+                chatData = new ChatData(0,3,"", (String)incomingMessage.getMessage() );
+                state.broadcast(chatData);
+                break;
+            case 2:
+                // Client leave notification ...
+                chatData = new ChatData(0,4,"", (String)incomingMessage.getMessage() );
+                state.broadcast(chatData);
+                break;
+            default:
+                // Unknown message subtype received
+                System.out.println("Unknown message subtype received");
+                break;
+        }
+    }
+
+    public void sendRClientJoin(String pseudo) {
+        InterServerMessage message = new InterServerMessage(0, 3, 1);
+        message.setMessage( pseudo );
+        rBroadcastManager.launchRBroadcast(message);
+        state.broadcast(new ChatData(0, 3, "", pseudo));
+    }
+
+    public void sendRClientLeave(String pseudo) {
+        InterServerMessage message = new InterServerMessage(0, 3, 2);
+        message.setMessage( pseudo );
+        rBroadcastManager.launchRBroadcast(message);
+        state.broadcast(new ChatData(0, 4, "", pseudo));
     }
 }

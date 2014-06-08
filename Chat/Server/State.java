@@ -18,10 +18,11 @@ import java.util.concurrent.locks.ReentrantLock;
  * License : GLP 2.0
  */
 public class State {
-    final ReentrantLock serverLock = new ReentrantLock();
-    final ReentrantLock clientLock = new ReentrantLock();
+    private final ReentrantLock serverLock = new ReentrantLock();
+    private final ReentrantLock clientLock = new ReentrantLock();
     private List<ClientStruct> cliStrs;
-    protected  List<ConnectionStruct> serverStrs;
+    private  List<ConnectionStruct> serverStrs;
+    private Boolean standAlone = true;
 
     public State() {
         cliStrs = new ArrayList<ClientStruct>();
@@ -98,6 +99,7 @@ public class State {
     public void addServer(ClientStruct cliStr){
         serverLock.lock();
         serverStrs.add( cliStr );
+        standAlone = false;
         serverLock.unlock();
     }
 
@@ -197,6 +199,9 @@ public class State {
     public void removeServer(ClientStruct toRemove) {
         serverLock.lock();
         serverStrs.remove(toRemove);
+        if( cliStrs.size() ==  0 ) {
+            standAlone = true;
+        }
         serverLock.unlock();
     }
 
@@ -222,9 +227,23 @@ public class State {
                 try {
                     connectionStruct.getFullDuplexMessageWorker().sendMsg(1, newToken);
                 } catch (IOException ioe) {
-                     System.out.println("Error while sending the new token");
+                    System.out.println("Error while sending the new token");
                 }
             }
         }
+    }
+
+    public void broadcastInterServerMessage( InterServerMessage mes) {
+        for( ConnectionStruct connectionStruct : serverStrs) {
+            try {
+                connectionStruct.getFullDuplexMessageWorker().sendMsg(2, mes);
+            } catch (IOException ioe) {
+                System.out.println("Error while broadcasting server message");
+            }
+        }
+    }
+
+    public Boolean getStandAlone() {
+        return standAlone;
     }
 }

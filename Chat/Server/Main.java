@@ -25,7 +25,6 @@ public class Main {
 /*
     I put here my roadMap :
 
-    // TODO 1 : Isolate Server and Client State in an other Class protected by mutex
     // TODO 2 : Server joining notifications for causal diffusion variables !!! -> some algorithm work
     // TODO 3 : Rdiffusion for client join and leave...
     // TODO 4 : Echo to retrieve trivially client list

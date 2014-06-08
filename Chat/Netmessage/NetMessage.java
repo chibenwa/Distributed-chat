@@ -37,4 +37,7 @@ public abstract class NetMessage implements Serializable{
     public Boolean hasError() {
         return errorCode != 0;
     }
+    public void setSeq(int _seq) {
+        seq=_seq;
+    }
 }
