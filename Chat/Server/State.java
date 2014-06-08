@@ -14,6 +14,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by benwa on 6/8/14.
+ *
+ * License : GLP 2.0
  */
 public class State {
     final ReentrantLock serverLock = new ReentrantLock();
@@ -92,7 +94,6 @@ public class State {
         return false;
     }
 
-    // TODO comment here
 
     public void addServer(ClientStruct cliStr){
         serverLock.lock();
@@ -165,7 +166,9 @@ public class State {
         serverLock.unlock();
     }
 
-    // TODO : write doc
+    /*
+    Check if a pseudo is available...
+     */
 
     public Boolean isPseudoTaken(String pseudo) {
         clientLock.lock();
