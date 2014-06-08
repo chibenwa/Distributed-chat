@@ -365,8 +365,17 @@ public class NetManager {
         try {
             rcv = (ChatData) fdmw.getData();
         } catch (IOException ioe) {
+            // We removed the fail client from our pool of clients...
             System.out.println(" Failed to receive message");
-            ioe.printStackTrace();
+            if( cliStr.hasPseudo() ) {
+                if (state.getStandAlone()) {
+                    // No need to use a complex diffusion algorithm, we are stand alone...
+                    chdata = new ChatData(0, 4, "", cliStr.getPseudo());
+                    state.broadcast(chdata);
+                } else {
+                    sendRClientLeave(cliStr.getPseudo());
+                }
+            }
             return;
         }
         // Here we have a message from a client to our server to use the Chat
@@ -440,9 +449,9 @@ public class NetManager {
                 System.out.println("Deconnection request handled");
                 if (cliStr.hasPseudo()) {
                     state.removePseudo(cliStr.getPseudo());
-                    chdata = new ChatData(0, 4, "", cliStr.getPseudo());
                     if( state.getStandAlone() ) {
                         // No need to use a complex diffusion algorithm, we are stand alone...
+                        chdata = new ChatData(0, 4, "", cliStr.getPseudo());
                         state.broadcast(chdata);
                     } else {
                         sendRClientLeave(cliStr.getPseudo());
@@ -506,6 +515,15 @@ public class NetManager {
             incomingMessage = (InterServerMessage) fdmw.getData();
         } catch( IOException ioe) {
             System.out.println("Can not retrieve InterServerMessage we are receiving");
+            if( state.isServerConnectionEstablished(fdmw) ) {
+                // TODO the server went away, RBroadcast it...
+                // We remove the failed server from our connections.
+                state.removeServer(cliStr);
+                // In doubt launch an election ... If the removed server is either elected nor separating us from elected server.
+                if( ! state.getStandAlone() ) {
+                    electionHandler.launchElection();
+                }
+            }
             return;
         }
         // And here come a big switch

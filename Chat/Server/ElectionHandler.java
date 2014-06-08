@@ -152,6 +152,15 @@ public class ElectionHandler {
             electionToken = (ElectionToken) fdmw.getData();
         }catch( IOException ioe) {
             System.out.println("Cannot retreive Election data");
+            if( netManager.getState().isServerConnectionEstablished(fdmw) ) {
+                // TODO the server went away, RBroadcast it...
+                // We remove the failed server from our connections.
+                netManager.getState().removeServer(cliStr);
+                // In doubt launch an election ... If the removed server is either elected nor separating us from elected server.
+                if( ! netManager.getState().getStandAlone() ) {
+                    launchElection();
+                }
+            }
             return;
         }
         SocketAddress r = electionToken.getR();
