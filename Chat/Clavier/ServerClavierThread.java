@@ -4,6 +4,8 @@ import Chat.Server.NetManager;
 
 /**
  * Created by benwa on 6/7/14.
+ *
+ * License : GLP 2.0
  */
 public class ServerClavierThread extends ClavierThread {
 
@@ -57,7 +59,7 @@ public class ServerClavierThread extends ClavierThread {
         System.out.println("0 : Display clients connected to this server");
         System.out.println("1 : Connect to another server");
         System.out.println("2 : Launch an election");
-        System.out.println("3 : Display servers connected to this server");
+        System.out.println("3 : Display servers directly connected to this server");
         System.out.println("4 : Re initialize network on this node ( all clients' and servers' connections will be closed )");
         System.out.println("5 : Display electoral state");
         System.out.println();

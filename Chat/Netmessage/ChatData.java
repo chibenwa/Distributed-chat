@@ -2,6 +2,8 @@ package Chat.Netmessage;
 
 /**
  * Created by benwa on 6/7/14.
+ *
+ * License : GLP 2.0
  */
 public class ChatData extends NetMessage {
     private String message;

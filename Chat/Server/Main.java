@@ -5,6 +5,8 @@ import Chat.Clavier.ServerClavierThread;
 
 /**
  * Created by benwa on 6/7/14.
+ *
+ * License : GLP 2.0
  */
 public class Main {
     public static void main(String[] argv) {
@@ -19,3 +21,16 @@ public class Main {
         netManager.launch();
     }
 }
+
+/*
+    I put here my roadMap :
+
+    // TODO 1 : Isolate Server and Client State in an other Class protected by mutex
+    // TODO 2 : Joining notifications !!! -> some algorithm work
+    // TODO 3 : Echo to retrieve trivially client list
+    // TODO 4 : Echo to retrieve trivially server list
+    // TODO 5 : Spare connections for clients with switching on server fault !
+    // TODO 6 : Causal diffusion for chat messages
+    // TODO 7 : P2P chat from combining both server and client
+
+ */

@@ -17,6 +17,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by benwa on 6/7/14.
+ *
+ * License : GLP 2.0
  */
 public class NetManager {
 
@@ -177,8 +179,8 @@ public class NetManager {
     Two usage nowadays :
 
         - Display it on clavier demand ( it will stay for debug purpose )
-        - Answer client to this question : who is connected
-          TODO : Use a wave based algorithm to get who is connected so that we can get the all client list
+        - Answer client to this question : who is connected directly to this server
+
      */
 
     public String buildClientList() {

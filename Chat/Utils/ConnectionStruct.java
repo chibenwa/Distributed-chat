@@ -4,6 +4,8 @@ import csc4509.FullDuplexMessageWorker;
 
 /**
  * Created by benwa on 6/7/14.
+ *
+ * License : GLP 2.0
  */
 public class ConnectionStruct {
     private FullDuplexMessageWorker full;

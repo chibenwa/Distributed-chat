@@ -6,6 +6,8 @@ import java.util.Date;
 
 /**
  * Created by benwa on 6/7/14.
+ *
+ * License : GLP 2.0
  */
 public abstract class NetMessage implements Serializable{
     private Date date;

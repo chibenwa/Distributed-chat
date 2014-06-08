@@ -11,6 +11,8 @@ import java.nio.channels.SocketChannel;
 
 /**
  * Created by benwa on 6/7/14.
+ *
+ * License : GLP 2.0
  */
 public class NetManager {
         // A bad ass Net manager that will do most of the job !
