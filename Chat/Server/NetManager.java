@@ -9,9 +9,7 @@ import csc4509.FullDuplexMessageWorker;
 import java.io.IOException;
 import java.net.*;
 import java.nio.channels.*;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -89,10 +87,10 @@ public class NetManager {
             ssc.configureBlocking(false);
             ServerSocket ss = ssc.socket();
             InetSocketAddress add = new InetSocketAddress(port);
+            p = add;
             ss.bind(add);
             electionHandler.setP(add);
             rBroadcastManager.setOurAddress(add);
-            p = add;
         } catch (IOException se) {
             System.out.println("Failed to create server");
             se.printStackTrace();
@@ -516,7 +514,6 @@ public class NetManager {
         } catch( IOException ioe) {
             System.out.println("Can not retrieve InterServerMessage we are receiving");
             if( state.isServerConnectionEstablished(fdmw) ) {
-                // TODO the server went away, RBroadcast it...
                 // We remove the failed server from our connections.
                 state.removeServer(cliStr);
                 // In doubt launch an election ... If the removed server is either elected nor separating us from elected server.
@@ -543,6 +540,7 @@ public class NetManager {
                     if (handleServerConnectionRequest(cliStr)) {
                         break;
                     }
+                    sendRServerJoin( incomingMessage.getIdentifier() );
                     // Then notify the other server that he had been correctly added :-)
                     sendInterServerMessage(fdmw, new InterServerMessage(0, 1), "Can not send ack for a server connection established");
                 }
@@ -681,6 +679,12 @@ public class NetManager {
                 chatData = new ChatData(0,2,chatMessage.message, chatMessage.pseudo);
                 state.broadcast(chatData);
                 break;
+            case 4:
+                // Server tells us it just joined our network
+                System.out.println("Bouilla !!!!!!!!!!!!!");
+                SocketAddress itsAddress = incomingMessage.getIdentifier();
+                System.out.println( itsAddress + " just joined us!");
+                break;
             default:
                 // Unknown message subtype received
                 System.out.println("Unknown message subtype received");
@@ -708,6 +712,12 @@ public class NetManager {
         chatMessage.pseudo = pseudo;
         chatMessage.message = messageContent;
         message.setMessage(chatMessage);
+        rBroadcastManager.launchRBroadcast(message);
+    }
+
+    public void sendRServerJoin(SocketAddress socketAddress) {
+        InterServerMessage message = new InterServerMessage(0, 3, 4);
+        message.setMessage( socketAddress );
         rBroadcastManager.launchRBroadcast(message);
     }
 }
