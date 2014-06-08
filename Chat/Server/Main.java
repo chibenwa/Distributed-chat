@@ -26,7 +26,6 @@ public class Main {
     I put here my roadMap :
 
     // TODO 2 : Server joining notifications for causal diffusion variables !!! -> some algorithm work
-    // TODO 3 : Rdiffusion for client join and leave...
     // TODO 4 : Echo to retrieve trivially client list
     // TODO 5 : Echo to retrieve trivially server list
     // TODO 6 : Spare connections for clients with switching on server fault !

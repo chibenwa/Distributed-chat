@@ -437,7 +437,7 @@ public class NetManager {
                         // No need to use a complex diffusion algorithm, we are stand alone...
                         state.broadcast(chdata);
                     } else {
-                        sendRClientLeave(rcv.getPseudo());
+                        sendRClientLeave(cliStr.getPseudo());
                     }
                 }
                 // Close socket

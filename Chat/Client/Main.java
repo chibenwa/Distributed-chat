@@ -3,6 +3,8 @@ package Chat.Client;
 
 import Chat.Clavier.ClientClavierThread;
 
+import java.util.Scanner;
+
 /**
  * Created by benwa on 6/7/14.
  *
@@ -10,12 +12,11 @@ import Chat.Clavier.ClientClavierThread;
  */
 public class Main {
     public static void main( String[] argv ) {
-        // Use ClientMain <ip address> <port>
-        if( argv.length != 2) {
-            System.out.println("Use : ClientMain <ip addresse> <port>");
-        }
-        String ip = argv[0];
-        int port = Integer.parseInt(argv[1]);
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Choose your server hostname : ");
+        String ip = scanner.nextLine();
+        System.out.print("Choose your port : ");
+        int port = scanner.nextInt();
         NetManager clientNetMngr = new NetManager(ip, port);
         // Here we launch the clavier thread
         ClientClavierThread clientClavierThread = new ClientClavierThread(clientNetMngr);
