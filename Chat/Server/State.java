@@ -8,8 +8,7 @@ import Chat.Utils.ConnectionStruct;
 import csc4509.FullDuplexMessageWorker;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -23,10 +22,12 @@ public class State {
     private List<ClientStruct> cliStrs;
     private  List<ConnectionStruct> serverStrs;
     private Boolean standAlone = true;
+    private HashMap<String,Boolean> pseudoList;
 
     public State() {
         cliStrs = new ArrayList<ClientStruct>();
         serverStrs = new ArrayList<ConnectionStruct>();
+        pseudoList = new HashMap<String, Boolean>();
     }
 
     /*
@@ -98,7 +99,7 @@ public class State {
 
     public void addServer(ClientStruct cliStr){
         serverLock.lock();
-        serverStrs.add( cliStr );
+        serverStrs.add(cliStr);
         standAlone = false;
         serverLock.unlock();
     }
@@ -245,5 +246,44 @@ public class State {
 
     public Boolean getStandAlone() {
         return standAlone;
+    }
+
+    public void setPseudoList( ArrayList<String> _pseudoList) {
+        pseudoList = new HashMap<String, Boolean>();
+        for( String pseudo : _pseudoList) {
+            pseudoList.put(pseudo, true);
+        }
+    }
+
+    public void addPseudo( String newPseudo){
+            pseudoList.put(newPseudo, true);
+    }
+
+    public void removePseudo( String pseudo ) {
+        pseudoList.remove( pseudo );
+    }
+
+    public Boolean isPseudoUsed(String pseudo) {
+        Boolean res = pseudoList.get(pseudo);
+        if( res == null) {
+            return false;
+        }
+        return res;
+    }
+
+    public String getClientsString() {
+        String res = "";
+        Iterator it = pseudoList.entrySet().iterator();
+        Boolean isFirst = true;
+        while( it.hasNext()) {
+            Map.Entry pairs = ( Map.Entry) it.next();
+            if( !isFirst ) {
+                res += ", ";
+            } else {
+                isFirst  =false;
+            }
+            res += pairs.getKey();
+        }
+        return res;
     }
 }

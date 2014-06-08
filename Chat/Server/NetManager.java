@@ -2,13 +2,16 @@ package Chat.Server;
 
 import Chat.Netmessage.ChatData;
 
+import Chat.Netmessage.ChatMessage;
 import Chat.Netmessage.InterServerMessage;
 import Chat.Utils.ClientStruct;
 import csc4509.FullDuplexMessageWorker;
 import java.io.IOException;
 import java.net.*;
 import java.nio.channels.*;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -385,6 +388,7 @@ public class NetManager {
                     // Store the login
                     cliStr.setPseudo(rcv.getPseudo());
                     state.addClient(cliStr);
+                    state.addPseudo(rcv.getPseudo());
                     // And notify every one
 
                     if( state.getStandAlone() ) {
@@ -409,6 +413,9 @@ public class NetManager {
                 if (cliStr.hasPseudo()) {
                     System.out.println("new message content " + rcv.getMessage());
                     state.broadcast(new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo()));
+                    if( ! state.getStandAlone() ) {
+                        sendRMessage( rcv.getMessage(), cliStr.getPseudo());
+                    }
                 } else {
                     System.out.println("Need pseudo man");
                     // No pseudo set for this operation, even if it is required. Send an error.
@@ -432,6 +439,7 @@ public class NetManager {
                 // Notify every one
                 System.out.println("Deconnection request handled");
                 if (cliStr.hasPseudo()) {
+                    state.removePseudo(cliStr.getPseudo());
                     chdata = new ChatData(0, 4, "", cliStr.getPseudo());
                     if( state.getStandAlone() ) {
                         // No need to use a complex diffusion algorithm, we are stand alone...
@@ -456,7 +464,7 @@ public class NetManager {
                 if (cliStr.hasPseudo()) {
                     // Ok, we now him, let send it
                     System.out.println("Yes he is authentificated and we can send the user list ( we will really do it ! ) ");
-                    chdata = new ChatData(0, 8, state.buildClientList(), cliStr.getPseudo());
+                    chdata = new ChatData(0, 8, state.getClientsString(), cliStr.getPseudo());
                     sendClientMessage(fdmw, chdata, "Could not send the user list");
                 } else {
                     // Who's that guy? Kick him dude !
@@ -641,10 +649,18 @@ public class NetManager {
                 // Client joining notification
                 chatData = new ChatData(0,3,"", (String)incomingMessage.getMessage() );
                 state.broadcast(chatData);
+                state.addPseudo((String)incomingMessage.getMessage());
                 break;
             case 2:
                 // Client leave notification ...
                 chatData = new ChatData(0,4,"", (String)incomingMessage.getMessage() );
+                state.broadcast(chatData);
+                state.removePseudo((String) incomingMessage.getMessage());
+                break;
+            case 3:
+                // Client message forwarded
+                ChatMessage chatMessage = (ChatMessage) incomingMessage.getMessage();
+                chatData = new ChatData(0,2,chatMessage.message, chatMessage.pseudo);
                 state.broadcast(chatData);
                 break;
             default:
@@ -666,5 +682,14 @@ public class NetManager {
         message.setMessage( pseudo );
         rBroadcastManager.launchRBroadcast(message);
         state.broadcast(new ChatData(0, 4, "", pseudo));
+    }
+
+    public void sendRMessage(String messageContent, String pseudo) {
+        InterServerMessage message = new InterServerMessage(0, 3, 3);
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.pseudo = pseudo;
+        chatMessage.message = messageContent;
+        message.setMessage(chatMessage);
+        rBroadcastManager.launchRBroadcast(message);
     }
 }

@@ -17,6 +17,7 @@ public class InterServerMessage extends NetMessage {
         Type 1 : I noticed that you are a server !
         Type 2 : Demand to close connection ...
         Type 3 : R diffusion of a message
+        Type 4 : F diffusion of a message
         Type 42 : Error
      */
 
@@ -38,6 +39,7 @@ public class InterServerMessage extends NetMessage {
         Type 0 : no SubType
         Type 1 : Client join
         Type 2 : Client leave
+        Type 3 : Client message
      */
 
     // A unique identifier to identify the server this message is coming from
