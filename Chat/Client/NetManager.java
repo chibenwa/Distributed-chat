@@ -57,11 +57,8 @@ public class NetManager {
         public void launch() {
             System.out.println("Listening");
             // And now listen to new messages !
-            int loop = 0;
             loopCondition = true;
             while(loopCondition) {
-                loop++;
-                //    System.out.println("Loop NB : " + loop);
                 full.readMessage();
                 ChatData chdata;
                 if( full == null ) {

@@ -30,7 +30,7 @@ public class NetManager {
     private List<ClientStruct> cliStrs;
     protected  List<ConnectionStruct> serverStrs;
     private ElectionHandler electionHandler;
-
+    private SocketAddress p;
     final ReentrantLock selectorLock = new ReentrantLock();
 
 
@@ -89,6 +89,7 @@ public class NetManager {
             InetSocketAddress add = new InetSocketAddress(port);
             ss.bind(add);
             electionHandler.setP(add);
+            p = add;
         } catch (IOException se) {
             System.out.println("Failed to create server");
             se.printStackTrace();
@@ -350,6 +351,8 @@ public class NetManager {
     }
 
     private void sendInterServerMessage( FullDuplexMessageWorker full,  InterServerMessage mes, String ioErrorMessage ) {
+        mes.setIdentifier(p);
+        mes.setElectionWinner( electionHandler.getWin() );
         try {
             full.sendMsg(2, mes);
         } catch (IOException ioe) {
@@ -391,20 +394,6 @@ public class NetManager {
         }
         return fullDuplexMessageWorker;
     }
-
-
-    /*
-
-        Here follows election stuff.
-
-     */
-
-
-
-
-
-
-
 
     /*
         Utility function...
@@ -641,7 +630,10 @@ public class NetManager {
                     electionHandler.unlock();
                     System.out.println("Our request for opening a new connection to another server was answered");
                     // Someone answered our demand for server connection. Ok, so we are well connected. Add the connection to the servers connections.
-                    handleServerConnectionRequest(cliStr);
+                    if( handleServerConnectionRequest(cliStr) ) {
+                        break;
+                    }
+                    manageElectoralStateOnServerConnection( incomingMessage.getElectionWinner(), cliStr );
                 }
                 break;
             case 2:
@@ -683,4 +675,48 @@ public class NetManager {
         electionHandler.displayElectoralState();
     }
 
+    /*
+        We have one main issue while connecting two servers :
+        They might be from different Networks.
+        To detect it, we just have to attach the winner value to the InterServerMessage.
+            * If it is null for both sides, we don't care, no election occured yet.No way to worry.
+            * If the value is the same, this is a connection for two servers of the same network. No way to worry.
+            * If the value is different, we are from different networks. We will process to these steps :
+                * First connect the networks
+                - The added value will launch an election if it is not the only node of its network
+                - In other cases we will launch an election
+     */
+
+    private void manageElectoralStateOnServerConnection(SocketAddress otherServerElectedIdentifier, ClientStruct potentialFather) {
+        if( electionHandler.getWin() == null && otherServerElectedIdentifier == null) {
+            // No way to worry, both sides do not have elected someone...
+            // But wait, now that we are linked, we can elect someone, no ? It would not be stupid...
+            System.out.println("============================ Set server for both unelected networks");
+            electionHandler.launchElection();
+        } else {
+            if( electionHandler.getWin() == null && serverStrs.size() == 1 ) {
+                // We are connected to a network that have an elected node
+                // We are alone. So we can join it with no fear and no complexity added
+                System.out.println("================================ Joining electoral system for both networks");
+                if( !electionHandler.joinElectoralNetwork(potentialFather, otherServerElectedIdentifier) ) {
+                    System.out.println("Error while joining network. We will start a new Election.");
+                    electionHandler.launchElection();
+                }
+                return;
+            }
+            if(otherServerElectedIdentifier == null ) {
+                // Other side network do not have an elected node. We do not know the amount of node of this network at this given moment
+                // ( even if deductible from message : things might have changed )
+                // The best option is to launch a new election so that we obtain a only elected node for the two freshly joined networks
+                System.out.println("=========================== Unknown topology on other side. Launching election");
+                electionHandler.launchElection();
+                return;
+            }
+            if( otherServerElectedIdentifier.toString().compareTo( electionHandler.getWin().toString() ) != 0 ) {
+                // Both networks do not have the same elected winner. We should uniform that !
+                System.out.println("============================== Different winner on both networks");
+                electionHandler.launchElection();
+            }
+        }
+    }
 }

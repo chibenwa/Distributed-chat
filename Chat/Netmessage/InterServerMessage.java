@@ -27,7 +27,11 @@ public class InterServerMessage extends NetMessage {
 
      */
 
+    // A unique identifier to identify the server this message is coming from
     private SocketAddress identifier;
+
+    // The identity of the election winner
+    private SocketAddress electionWinner;
 
     public InterServerMessage(int _seq, int _type) {
         super( _seq, _type);
@@ -55,5 +59,11 @@ public class InterServerMessage extends NetMessage {
     }
     public SocketAddress getIdentifier() {
         return identifier;
+    }
+    public void setElectionWinner( SocketAddress _electionWinner) {
+        electionWinner = _electionWinner;
+    }
+    public SocketAddress getElectionWinner() {
+        return electionWinner;
     }
 }
