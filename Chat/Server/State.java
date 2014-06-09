@@ -267,10 +267,10 @@ public class State {
         return standAlone;
     }
 
-    public void setPseudoList( ArrayList<String> _pseudoList) {
+    public void setPseudoList( ArrayList<Serializable> _pseudoList) {
         pseudoList = new HashMap<String, Boolean>();
-        for( String pseudo : _pseudoList) {
-            pseudoList.put(pseudo, true);
+        for( Serializable pseudo : _pseudoList) {
+            pseudoList.put((String)pseudo, true);
         }
     }
 
@@ -280,6 +280,10 @@ public class State {
 
     public void removePseudo( String pseudo ) {
         pseudoList.remove( pseudo );
+    }
+
+    public void clearPseudo() {
+        pseudoList.clear();
     }
 
     public Boolean isPseudoUsed(String pseudo) {
@@ -341,6 +345,14 @@ public class State {
                 res += ", ";
             }
             res+=address.toString();
+        }
+        return res;
+    }
+
+    public ArrayList<Serializable> getConnectedClients() {
+        ArrayList<Serializable> res = new ArrayList<Serializable>();
+        for(ClientStruct clientStruct : cliStrs) {
+            res.add( (Serializable) clientStruct.getPseudo());
         }
         return res;
     }

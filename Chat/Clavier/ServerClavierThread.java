@@ -49,7 +49,8 @@ public class ServerClavierThread extends ClavierThread {
                 netManager.displayElectoralState();
                 break;
             case 6:
-                netManager.launchServerDiscovery();
+                //netManager.launchServerDiscovery();
+                netManager.lauchPseudoDiscovery();
                 break;
             default:
                 System.out.println("Command unrecognise...");

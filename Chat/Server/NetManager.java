@@ -32,6 +32,7 @@ public class NetManager {
     private ElectionHandler electionHandler;
     private RBroadcastManager rBroadcastManager;
     private EchoServerListManager echoServerListManager;
+    private EchoPseudoListManager echoPseudoListManager;
     final ReentrantLock selectorLock = new ReentrantLock();
     private Selector selector;
 
@@ -54,6 +55,7 @@ public class NetManager {
         electionHandler = new ElectionHandler(this);
         rBroadcastManager = new RBroadcastManager(this);
         echoServerListManager = new EchoServerListManager(this);
+        echoPseudoListManager = new EchoPseudoListManager(this);
     }
 
 
@@ -95,6 +97,7 @@ public class NetManager {
             electionHandler.setP(add);
             rBroadcastManager.setOurAddress(add);
             echoServerListManager.setP(add);
+            echoPseudoListManager.setP(add);
         } catch (IOException se) {
             System.out.println("Failed to create server");
             se.printStackTrace();
@@ -604,6 +607,8 @@ public class NetManager {
                 } catch(IOException ioe) {
                     System.out.println("We could not disconnect server as requested...");
                 }
+                electionHandler.launchElection();
+                break;
             case 3:
                 // R diffusion message
                 if( rBroadcastManager.manageInput( incomingMessage) ) {
@@ -613,17 +618,27 @@ public class NetManager {
                 break;
             case 6 :
                 System.out.println("Working with retrieve clients requests");
+                ArrayList<Serializable> result = echoPseudoListManager.processInput(incomingMessage, cliStr);
+                if( result != null ) {
+                    System.out.println(" ############################################# ");
+                    for (Serializable serializable : result) {
+                        System.out.println( (String) serializable);
+                    }
+                    System.out.println(" ############################################# ");
+                    state.setPseudoList( result );
+                    launchRPseudoSet(result);
+                }
                 break;
             case 7:
                 System.out.println("Working with server retrieve request ");
                 ArrayList<Serializable> res = echoServerListManager.processInput(incomingMessage, cliStr);
                 if( res != null ) {
-                    // TODO someting esle here
                     System.out.println(" ############################################# ");
                     for (Serializable serializable : res) {
                         System.out.println(( (SocketAddress) serializable).toString());
                     }
                     System.out.println(" ############################################# ");
+                    state.setServerConnectedOnOurNetwork(res);
                     launchRServerSet(res);
                 }
                 break;
@@ -754,6 +769,12 @@ public class NetManager {
                 state.setServerConnectedOnOurNetwork(listOfServers);
                 System.out.println("Job done, I now use master's list of servers");
                 break;
+            case 7:
+                // The winner set up our client list
+                ArrayList<Serializable> listOfPseudo = ( ArrayList<Serializable>) incomingMessage.getMessage();
+                state.setPseudoList(listOfPseudo);
+                System.out.println("Job done, I now use master's list of pseudos");
+                break;
             default:
                 // Unknown message subtype received
                 System.out.println("Unknown message subtype received");
@@ -803,9 +824,19 @@ public class NetManager {
         echoServerListManager.launchEcho();
     }
 
-    public void launchRServerSet(ArrayList<Serializable> serverList) {
+    private void launchRServerSet(ArrayList<Serializable> serverList) {
         InterServerMessage message = new InterServerMessage(0, 3, 6);
         message.setMessage( serverList );
+        rBroadcastManager.launchRBroadcast(message);
+    }
+
+    public void lauchPseudoDiscovery() {
+        echoPseudoListManager.launchEcho();
+    }
+
+    private void launchRPseudoSet(ArrayList<Serializable> pseudoList) {
+        InterServerMessage message = new InterServerMessage(0, 3, 7);
+        message.setMessage( pseudoList );
         rBroadcastManager.launchRBroadcast(message);
     }
 

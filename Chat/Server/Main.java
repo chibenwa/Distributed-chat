@@ -26,7 +26,6 @@ public class Main {
     I put here my roadMap :
 
     // TODO 4 : Echo to retrieve trivially client list
-    // TODO 5 : Echo to retrieve trivially server list
     // TODO 7 : Causal diffusion for chat messages
     // TODO 8 : P2P chat from combining both server and client
 

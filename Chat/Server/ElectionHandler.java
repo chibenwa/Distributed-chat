@@ -209,6 +209,7 @@ public class ElectionHandler {
                             netManager.getState().broadcastToken(winner,"Error while broadcasting our victory");
                             // Tasks that must be performed by the winner
                             netManager.launchServerDiscovery();
+                            netManager.lauchPseudoDiscovery();
                         } else {
                             System.out.println("Answer dad");
                             // All our neighbours have answered us so we can reply to our father
