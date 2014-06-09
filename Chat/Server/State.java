@@ -3,10 +3,8 @@ package Chat.Server;
 import Chat.Netmessage.ChatData;
 import Chat.Netmessage.ElectionToken;
 import Chat.Netmessage.InterServerMessage;
-import Chat.Netmessage.NetMessage;
 import Chat.Utils.ClientStruct;
 import Chat.Utils.ConnectionStruct;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import csc4509.FullDuplexMessageWorker;
 
 import java.io.IOException;
@@ -268,11 +266,60 @@ public class State {
     }
 
     public void setPseudoList( ArrayList<Serializable> _pseudoList) {
-        pseudoList = new HashMap<String, Boolean>();
+        ArrayList<String> toNotifyDisconnection = new ArrayList<String>();
+        ArrayList<String> toNotifyArrival = new ArrayList<String>();
+        for(Serializable serializable : _pseudoList) {
+            if( !isPseudoTaken( (String) serializable ) ) {
+                // absent from this server. Add it.
+                String actualPseudo = (String) serializable;
+                toNotifyArrival.add( actualPseudo);
+                broadcast(new ChatData(0, 3, "", actualPseudo));
+            }
+        }
+        Iterator it = pseudoList.entrySet().iterator();
+        while( it.hasNext() ) {
+            Map.Entry pairs  = ( Map.Entry) it.next();
+            String localPseudo =(String) pairs.getKey();
+            if(!foundEntry(_pseudoList, localPseudo)) {
+                // The client leaved
+                toNotifyDisconnection.add( localPseudo );
+                broadcast(new ChatData(0, 4, "", localPseudo ));
+            }
+        }
+        for(String string : toNotifyArrival) {
+            pseudoList.put(string, true);
+        }
+        for(String string : toNotifyDisconnection) {
+            pseudoList.remove(string);
+        }
+        // Bouilla
+    }
+
+    void switchToStandAlone() {
+        ArrayList<Serializable> localClientsPseudo = new ArrayList<Serializable>();
+        for(ClientStruct clientStruct : cliStrs) {
+            localClientsPseudo.add(clientStruct.getPseudo());
+        }
+        setPseudoList(localClientsPseudo);
+        serverConnectedOnOurNetwork.clear();
+        standAlone = true;
+    }
+
+    private Boolean foundEntry(ArrayList<Serializable> list, String entry) {
+        for(Serializable serializable : list) {
+            if( entry.compareTo((String)serializable) == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+   /* public void addPseudoList( ArrayList<Serializable> _pseudoList) {
         for( Serializable pseudo : _pseudoList) {
             pseudoList.put((String)pseudo, true);
         }
-    }
+    }*/
 
     public void addPseudo( String newPseudo){
             pseudoList.put(newPseudo, true);
@@ -280,10 +327,6 @@ public class State {
 
     public void removePseudo( String pseudo ) {
         pseudoList.remove( pseudo );
-    }
-
-    public void clearPseudo() {
-        pseudoList.clear();
     }
 
     public Boolean isPseudoUsed(String pseudo) {
@@ -335,6 +378,14 @@ public class State {
         serverConnectedOnOurNetwork.add(socketAddress);
     }
 
+    public ArrayList<Serializable> getServerConnectedOnOurNetwork() {
+        ArrayList<Serializable> res = new ArrayList<Serializable>();
+        for( SocketAddress address : serverConnectedOnOurNetwork) {
+            res.add( (Serializable) address);
+        }
+        return res;
+    }
+
     public String getServerConnectedOnOurNetworkString() {
         String res = "";
         Boolean isFirst = true;
@@ -356,4 +407,6 @@ public class State {
         }
         return res;
     }
+
+
 }
