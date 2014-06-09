@@ -9,8 +9,8 @@ import Chat.Client.NetManager;
  */
 public class ClientClavierThread extends ClavierThread {
 
-    NetManager netManager;
-    String pseudo;
+    private NetManager netManager;
+    private String pseudo;
 
     public ClientClavierThread( NetManager _netManager) {
         super();
