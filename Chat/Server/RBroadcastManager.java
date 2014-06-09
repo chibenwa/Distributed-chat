@@ -45,9 +45,10 @@ public class RBroadcastManager {
     private Boolean processMessageIds(SocketAddress identifier, int seq) {
         ArrayList<Integer> messageIdentifierIds = RMessageReceived.get(identifier);
         if( messageIdentifierIds == null ) {
-            System.out.println("Null ID founded in RMessageReceived warning 1. We add it. ");
+            System.out.println("First time this server sends us a RBroadcast message");
             messageIdentifierIds = new ArrayList<Integer>();
             messageIdentifierIds.add(seq);
+            RMessageReceived.put(identifier, messageIdentifierIds);
             return false;
         }
         for( Integer i : messageIdentifierIds) {

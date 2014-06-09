@@ -25,7 +25,7 @@ public class NetManager {
     // Things initialized in a mono threaded environment and then only read.
     private int port;
     private ServerSocketChannel ssc;
-
+    // todo burn your body
     private SocketAddress p;
 
 
@@ -572,11 +572,7 @@ public class NetManager {
                 } else {
                     electionHandler.unlock();
                     System.out.println("Request for server connection received");
-                    // Someone make a demand to be added to servers.
-                    if (handleServerConnectionRequest(cliStr)) {
-                        break;
-                    }
-                    sendRServerJoin( incomingMessage.getIdentifier() );
+                    state.addServer(cliStr);
                     // Then notify the other server that he had been correctly added :-)
                     sendInterServerMessage(fdmw, new InterServerMessage(0, 1), "Can not send ack for a server connection established");
                 }
@@ -591,11 +587,8 @@ public class NetManager {
                 } else {
                     electionHandler.unlock();
                     System.out.println("Our request for opening a new connection to another server was answered");
-                    // Someone answered our demand for server connection. Ok, so we are well connected. Add the connection to the servers connections.
-                    if( handleServerConnectionRequest(cliStr) ) {
-                        break;
-                    }
-                    manageElectoralStateOnServerConnection( incomingMessage.getElectionWinner(), cliStr );
+                    state.addServer(cliStr);
+                    manageElectoralStateOnServerConnection( incomingMessage.getElectionWinner(), cliStr, incomingMessage.getIdentifier() );
                 }
                 break;
             case 2:
@@ -620,6 +613,7 @@ public class NetManager {
                 System.out.println("Working with server retrieve request ");
                 ArrayList<Serializable> res = echoServerListManager.processInput(incomingMessage, cliStr);
                 if( res != null ) {
+                    // TODO someting esle here
                     System.out.println(" ############################################# ");
                     for (Serializable serializable : res) {
                         System.out.println(( (SocketAddress) serializable).toString());
@@ -660,7 +654,7 @@ public class NetManager {
                 - In other cases we will launch an election
      */
 
-    private void manageElectoralStateOnServerConnection(SocketAddress otherServerElectedIdentifier, ClientStruct potentialFather) {
+    private void manageElectoralStateOnServerConnection(SocketAddress otherServerElectedIdentifier, ClientStruct potentialFather, SocketAddress id) {
         if( electionHandler.getWin() == null && otherServerElectedIdentifier == null) {
             // No way to worry, both sides do not have elected someone...
             // But wait, now that we are linked, we can elect someone, no ? It would not be stupid...
@@ -674,6 +668,8 @@ public class NetManager {
                 if( !electionHandler.joinElectoralNetwork(potentialFather, otherServerElectedIdentifier) ) {
                     System.out.println("Error while joining network. We will start a new Election.");
                     electionHandler.launchElection();
+                } else {
+                    sendRServerJoin( id );
                 }
                 return;
             }
