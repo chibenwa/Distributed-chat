@@ -48,6 +48,9 @@ public class ServerClavierThread extends ClavierThread {
                 // Display Electoral status
                 netManager.displayElectoralState();
                 break;
+            case 6:
+                netManager.launchServerDiscovery();
+                break;
             default:
                 System.out.println("Command unrecognise...");
                 break;
@@ -63,6 +66,7 @@ public class ServerClavierThread extends ClavierThread {
         System.out.println("3 : Display servers directly connected to this server");
         System.out.println("4 : Re initialize network on this node ( all clients' and servers' connections will be closed )");
         System.out.println("5 : Display electoral state");
+        System.out.println("6 : Debug button");
         System.out.println();
     }
 

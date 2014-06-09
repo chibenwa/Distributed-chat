@@ -7,8 +7,10 @@ import Chat.Netmessage.InterServerMessage;
 import Chat.Utils.ClientStruct;
 import csc4509.FullDuplexMessageWorker;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.*;
 import java.nio.channels.*;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
@@ -30,6 +32,7 @@ public class NetManager {
     // Thread safe
     private ElectionHandler electionHandler;
     private RBroadcastManager rBroadcastManager;
+    private EchoServerListManager echoServerListManager;
     final ReentrantLock selectorLock = new ReentrantLock();
     private Selector selector;
 
@@ -51,6 +54,7 @@ public class NetManager {
         state = new State();
         electionHandler = new ElectionHandler(this);
         rBroadcastManager = new RBroadcastManager(this);
+        echoServerListManager = new EchoServerListManager(this);
     }
 
 
@@ -91,6 +95,7 @@ public class NetManager {
             ss.bind(add);
             electionHandler.setP(add);
             rBroadcastManager.setOurAddress(add);
+            echoServerListManager.setP(add);
         } catch (IOException se) {
             System.out.println("Failed to create server");
             se.printStackTrace();
@@ -608,6 +613,20 @@ public class NetManager {
                     manageServerMessageSubtype(incomingMessage);
                 }
                 break;
+            case 6 :
+                System.out.println("Working with retrieve clients requests");
+                break;
+            case 7:
+                System.out.println("Working with server retrieve request ");
+                ArrayList<Serializable> res = echoServerListManager.processInput(incomingMessage, cliStr);
+                if( res != null ) {
+                    System.out.println(" ############################################# ");
+                    for (Serializable serializable : res) {
+                        System.out.println(( (SocketAddress) serializable).toString());
+                    }
+                    System.out.println(" ############################################# ");
+                }
+                break;
             case 42:
                 // Error code : lets display it
                 if( incomingMessage.hasError() ) {
@@ -712,7 +731,6 @@ public class NetManager {
                 break;
             case 4:
                 // Server tells us it just joined our network
-                System.out.println("Bouilla !!!!!!!!!!!!!");
                 SocketAddress itsAddress = incomingMessage.getIdentifier();
                 System.out.println( itsAddress + " just joined us!");
                 break;
@@ -772,4 +790,8 @@ public class NetManager {
         message.setMessage(chatMessage);
         rBroadcastManager.launchRBroadcast(message);
     }
+    public void launchServerDiscovery() {
+        echoServerListManager.launchEcho();
+    }
+
 }

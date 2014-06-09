@@ -18,6 +18,9 @@ public class InterServerMessage extends NetMessage {
         Type 2 : Demand to close connection ...
         Type 3 : R diffusion of a message
         Type 4 : F diffusion of a message
+        Type 5 : C diffusion
+        Type 6 : Echo wave pseudos
+        Type 7 : Echo wave servers
         Type 42 : Error
      */
 

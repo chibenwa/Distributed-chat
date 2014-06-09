@@ -3,6 +3,7 @@ package Chat.Server;
 import Chat.Netmessage.ChatData;
 import Chat.Netmessage.ElectionToken;
 import Chat.Netmessage.InterServerMessage;
+import Chat.Netmessage.NetMessage;
 import Chat.Utils.ClientStruct;
 import Chat.Utils.ConnectionStruct;
 import csc4509.FullDuplexMessageWorker;
@@ -227,6 +228,19 @@ public class State {
             if( connectionStruct != father) {
                 try {
                     connectionStruct.getFullDuplexMessageWorker().sendMsg(1, newToken);
+                } catch (IOException ioe) {
+                    System.out.println("Error while sending the new token");
+                }
+            }
+        }
+    }
+
+    public void broadcastTokenWithoutFather(ClientStruct father, InterServerMessage newToken) {
+        // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
+        for( ConnectionStruct connectionStruct : serverStrs) {
+            if( connectionStruct != father) {
+                try {
+                    connectionStruct.getFullDuplexMessageWorker().sendMsg(2, newToken);
                 } catch (IOException ioe) {
                     System.out.println("Error while sending the new token");
                 }
