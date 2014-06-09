@@ -7,6 +7,7 @@ import Chat.Server.NetManager;
  *
  * License : GLP 2.0
  */
+
 public class ServerClavierThread extends ClavierThread {
 
     NetManager netManager;

@@ -19,10 +19,14 @@ import java.util.concurrent.locks.ReentrantLock;
 public class NetManager {
     // A bad ass Net manager that will do most of the job !
     private FullDuplexMessageWorker full;
+    private FullDuplexMessageWorker fullDuplexMessageWorkerSpare;
+    private Boolean isSpareSet = false;
+    private Boolean isInSpareTansaction = false;
     private Boolean hasCompletedLogin = false;
     private Boolean hasLoginResponse = false;
     private InetSocketAddress isa;
     private Boolean loopCondition;
+    private String sparePseudo = "";
     private Boolean waitingUserList = false;
     final ReentrantLock clientStateLock = new ReentrantLock();
 
@@ -71,9 +75,30 @@ public class NetManager {
             }
             try {
                 chdata = (ChatData) full.getData();
+            } catch( NullPointerException nlp ) {
+                System.out.println("Can not read received datas ( Null pointer exception ) ");
+                // TODO Sw here
+                switchToSpareConnection();
+                while( isInSpareTansaction ) {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException ie) {
+                        System.out.println("Interrupted...");
+                    }
+                }
+                continue;
             } catch (IOException ioe) {
                 System.out.println("Can not read received datas");
-                return;
+                // TODO Sw here
+                switchToSpareConnection();
+                while( isInSpareTansaction ) {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException ie) {
+                        System.out.println("Interrupted...");
+                    }
+                }
+                continue;
             }
             if (chdata == null) {
                 break;
@@ -118,6 +143,7 @@ public class NetManager {
                     }
                     clientStateLock.unlock();
                     break;
+                case 6:
                 case 42:
                     // We did something wrong and here came the error
                     if (chdata.hasError()) {
@@ -142,7 +168,7 @@ public class NetManager {
     }
 
     public void sendMsg(String msg, String pseudo) {
-        sendMessage(new ChatData(0, 2, msg, pseudo), "Oh god, we failed sending the pseudo request !");
+        sendMessage(new ChatData(0, 2, msg, pseudo), "Oh god, we failed sending our message ! To ");
     }
 
     public void disconnect() {
@@ -164,4 +190,68 @@ public class NetManager {
             System.out.println(ioErrorMessage);
         }
     }
+
+    public Boolean getIsSpareSet() {
+        return isSpareSet;
+    }
+
+    public void establishSpareConnection(String ip, int _port, String _pseudo) {
+        InetAddress add;
+        try {
+            add = InetAddress.getByName(ip);
+        } catch (UnknownHostException uhe) {
+            System.out.println("Unknown host specified as server. Terminating");
+            return;
+        }
+        InetSocketAddress _isa = new InetSocketAddress(add, _port);
+        SocketChannel socketChannel;
+        try {
+            socketChannel = SocketChannel.open(_isa);
+        } catch (IOException ioe) {
+            System.out.println("Oh man, we cannot connect spare connection !");
+            return;
+        }
+        // Here we are connected.
+        fullDuplexMessageWorkerSpare = new FullDuplexMessageWorker(socketChannel);
+        try{
+            fullDuplexMessageWorkerSpare.sendMsg(0,new ChatData(0,9,"",_pseudo));
+        } catch( IOException ioe) {
+            System.out.println("Failed to send spare connection demand");
+        }
+        isSpareSet = true;
+        sparePseudo = _pseudo;
+    }
+
+    public void switchToSpareConnection() {
+        if( isSpareSet) {
+            isInSpareTansaction = true;
+            isSpareSet = false;
+            try {
+                fullDuplexMessageWorkerSpare.sendMsg(0, new ChatData(0, 10, "", sparePseudo));
+            } catch (IOException ioe) {
+                System.out.println("Failed to send spare switching demand");
+            }
+            fullDuplexMessageWorkerSpare.readMessage();
+            ChatData answer;
+            try{
+                answer = ( ChatData ) fullDuplexMessageWorkerSpare.getData();
+            } catch (IOException ioe ) {
+                System.out.println("Error while waiting ack");
+                return;
+            }
+            if( answer.getType() == 11 ) {
+                try {
+                    full.close();
+                } catch(IOException ioe) {
+                    System.out.println("Can not close full");
+                }
+                full = fullDuplexMessageWorkerSpare;
+                isInSpareTansaction = false;
+                System.out.println("Switch done !");
+            } else {
+                System.out.println("Wrong message type not expected");
+            }
+        }
+    }
+
 }

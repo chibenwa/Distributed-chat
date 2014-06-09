@@ -485,6 +485,24 @@ public class NetManager {
                 System.out.println("User send us a list of pseudo");
                 sendClientError(cliStr, 8, "Failed to send error for a client who send us a user list");
                 break;
+            case 9:
+                // The user want to be set as spare
+                if( state.isPseudoTaken(rcv.getPseudo())) {
+                    // The pseudo is taken, we can set spare connection
+                    sendClientMessage(cliStr.getFullDuplexMessageWorker(), new ChatData(0,10,""),"Failed to send Ack for spared connection registring");
+                    cliStr.setPseudo(rcv.getPseudo());
+                    System.out.println("Client spare " + rcv.getPseudo() + " registered");
+                }
+                break;
+            case 10:
+                // The client wants to perform switching...
+                System.out.println("Traiting client switching");
+                if( !cliStr.hasPseudo()) {
+                    cliStr.setPseudo(rcv.getPseudo());
+                }
+                state.addClient(cliStr);
+                sendClientMessage(cliStr.getFullDuplexMessageWorker(), new ChatData(0,11,""), "Failed to send Ack for spare connection activation");
+                break;
             case 42:
                 // The client send us an error
                 if (rcv.hasError()) {

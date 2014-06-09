@@ -25,6 +25,8 @@ public class ClientClavierThread extends ClavierThread {
         System.out.println("Press 2 if you want to be disconnected from server");
         System.out.println("Press 3 to see this help again");
         System.out.println("Press 4 to see every users on the Chat");
+        System.out.println("Press 5 to set a spare connection");
+        System.out.println("Press 5 to debug a spare connection");
         System.out.println("Et oui je suis une sorte de répondeur!");
         System.out.println("");
     }
@@ -54,6 +56,20 @@ public class ClientClavierThread extends ClavierThread {
                 break;
             case 4:
                 netManager.askForUserList();
+                break;
+            case 5:
+                if( ! netManager.getIsSpareSet()) {
+                    System.out.print("Ip : ");
+                    String ipS = sc.nextLine();
+                    System.out.println("Port : ");
+                    int __port = sc.nextInt();
+                    netManager.establishSpareConnection(ipS, __port, pseudo);
+                } else {
+                    System.out.println("Spare connection is already active !");
+                }
+                break;
+            case 6:
+                netManager.switchToSpareConnection();
                 break;
             default :
                 System.out.println("Come on, try to do something usefull ! ");

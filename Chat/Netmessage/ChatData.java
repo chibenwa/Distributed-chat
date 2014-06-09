@@ -19,6 +19,9 @@ public class ChatData extends NetMessage {
      * Type 5 : Deconnection request
      * Type 7 : Demand for a list of user
      * Type 8 : Answer to a list of user
+     * Type 9 : Demand spare connection
+     * Type 10 : Activate spare connection
+     * Type 11 : Spare switching performed server side
      * Type 42 : Errors notifications
      */
     private String pseudo; // set by server only
@@ -37,6 +40,7 @@ public class ChatData extends NetMessage {
         Type 7 : When requesting a login, you should set the login field
         Type 8 : Client should not send a user list to a server
         Type 9 : Server provided a user list while the client never asked for
+        Type 10 : You are already active on this node, we can not set up spare connection !
      */
     public String getMessage() {
         return message;
