@@ -161,6 +161,9 @@ public class NetManager {
                     // We received a private message
                     System.out.println(chdata.getPseudo() +" ( as private ) : " + chdata.getMessage() );
                     break;
+                case 13:
+                    System.out.println("Server list : " + chdata.getMessage());
+                    break;
                 default:
                     System.out.println("Unhandled number for message type : " + chdata.getType());
                     break;
@@ -263,6 +266,10 @@ public class NetManager {
         ChatData chatData = new ChatData(0,12,message,pseudo);
         chatData.pseudoDestination = dest;
         sendMessage(chatData, "Error sending private message ! ");
+    }
+
+    public void askForServerList() {
+        sendMessage(new ChatData(0,13,""),"Error requesting server list ");
     }
 
 }

@@ -25,7 +25,6 @@ public class NetManager {
     // Things initialized in a mono threaded environment and then only read.
     private int port;
     private ServerSocketChannel ssc;
-    // todo burn your body
     private SocketAddress p;
 
 
@@ -521,6 +520,12 @@ public class NetManager {
                     sendRPrivateMessage(rcv.getMessage(), rcv.getPseudo(), dest);
                 }
                 break;
+            case 13:
+                // Answer from our demand of servers list
+                System.out.println("Demand of list of server");
+                String serverListString = state.getServerConnectedOnOurNetworkString();
+                sendClientMessage(fdmw,new ChatData(0,13,serverListString),"Error sending answer to client");
+                break;
             case 42:
                 // The client send us an error
                 if (rcv.hasError()) {
@@ -619,6 +624,7 @@ public class NetManager {
                         System.out.println(( (SocketAddress) serializable).toString());
                     }
                     System.out.println(" ############################################# ");
+                    launchRServerSet(res);
                 }
                 break;
             case 42:
@@ -729,6 +735,7 @@ public class NetManager {
                 // Server tells us it just joined our network
                 SocketAddress itsAddress = incomingMessage.getIdentifier();
                 System.out.println( itsAddress + " just joined us!");
+                state.addServerConnectedOnOurNetwork(itsAddress);
                 break;
             case 5:
                 // Private message
@@ -740,6 +747,12 @@ public class NetManager {
                     chdata.pseudoDestination = dest;
                     sendClientMessage(state.getClientByPseudo(dest).getFullDuplexMessageWorker(), chdata, "Failed send private message to client directly connected ( after broadcast ) ");
                 }
+                break;
+            case 6:
+                // The winner set up our server list
+                ArrayList<Serializable> listOfServers = ( ArrayList<Serializable>) incomingMessage.getMessage();
+                state.setServerConnectedOnOurNetwork(listOfServers);
+                System.out.println("Job done, I now use master's list of servers");
                 break;
             default:
                 // Unknown message subtype received
@@ -788,6 +801,12 @@ public class NetManager {
     }
     public void launchServerDiscovery() {
         echoServerListManager.launchEcho();
+    }
+
+    public void launchRServerSet(ArrayList<Serializable> serverList) {
+        InterServerMessage message = new InterServerMessage(0, 3, 6);
+        message.setMessage( serverList );
+        rBroadcastManager.launchRBroadcast(message);
     }
 
 }

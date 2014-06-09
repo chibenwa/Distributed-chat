@@ -6,9 +6,12 @@ import Chat.Netmessage.InterServerMessage;
 import Chat.Netmessage.NetMessage;
 import Chat.Utils.ClientStruct;
 import Chat.Utils.ConnectionStruct;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import csc4509.FullDuplexMessageWorker;
 
 import java.io.IOException;
+import java.io.Serializable;
+import java.net.SocketAddress;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -24,11 +27,13 @@ public class State {
     private  List<ConnectionStruct> serverStrs;
     private Boolean standAlone = true;
     private HashMap<String,Boolean> pseudoList;
+    private ArrayList<SocketAddress> serverConnectedOnOurNetwork;
 
     public State() {
         cliStrs = new ArrayList<ClientStruct>();
         serverStrs = new ArrayList<ConnectionStruct>();
         pseudoList = new HashMap<String, Boolean>();
+        serverConnectedOnOurNetwork = new ArrayList<SocketAddress>();
     }
 
     /*
@@ -308,5 +313,35 @@ public class State {
             }
         }
         return null;
+    }
+
+    public void setServerConnectedOnOurNetwork( ArrayList<Serializable> input) {
+        serverConnectedOnOurNetwork.clear();
+        for(Serializable serializable : input) {
+            serverConnectedOnOurNetwork.add( (SocketAddress) serializable);
+        }
+    }
+
+    public void addServerConnectedOnOurNetwork( SocketAddress socketAddress) {
+        for( SocketAddress address : serverConnectedOnOurNetwork) {
+            if( address.toString().compareTo(socketAddress.toString()) == 0 ) {
+                return;
+            }
+        }
+        serverConnectedOnOurNetwork.add(socketAddress);
+    }
+
+    public String getServerConnectedOnOurNetworkString() {
+        String res = "";
+        Boolean isFirst = true;
+        for( SocketAddress address : serverConnectedOnOurNetwork) {
+            if( isFirst) {
+                isFirst = false;
+            } else {
+                res += ", ";
+            }
+            res+=address.toString();
+        }
+        return res;
     }
 }

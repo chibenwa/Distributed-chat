@@ -45,6 +45,7 @@ public class InterServerMessage extends NetMessage {
         Type 3 : Client message
         Type 4 : Coming in your network
         Type 5 : private message forward
+        Type 6 : Set your list of servers
      */
 
     // A unique identifier to identify the server this message is coming from

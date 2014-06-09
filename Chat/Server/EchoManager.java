@@ -68,12 +68,12 @@ public class EchoManager {
             }
         }
         if( firstWaveMessage ) {
-            ArrayList<Serializable> answer = new ArrayList<Serializable>();
             ArrayList<Serializable> nodeDatas = getNodeDatas();
             for(Serializable data : nodeDatas) {
-                answer.add(data);
+                if( !isInDatas(waveDatas, data))
+                    waveDatas.add(data);
             }
-            message.setMessage(answer);
+            message.setMessage(waveDatas);
             netManager.getState().broadcastTokenWithoutFather(father, message);
         }
         if( originMessagesCount.get(nbEcho) == netManager.getState().getNbConnectedServers() ) {

@@ -27,6 +27,7 @@ public class ClientClavierThread extends ClavierThread {
         System.out.println("Press 4 to see every users on the Chat");
         System.out.println("Press 5 to set a spare connection");
         System.out.println("Press 6 to send a private message");
+        System.out.println("Press 7 to obtain server list");
         System.out.println("Et oui je suis une sorte de répondeur!");
         System.out.println("");
     }
@@ -75,6 +76,10 @@ public class ClientClavierThread extends ClavierThread {
                 System.out.print("Message : ");
                 message = sc.nextLine();
                 netManager.sendPrivateMessage(pseudo, dest, message);
+                break;
+            case 7 :
+                // Server list
+                netManager.askForServerList();
                 break;
             default :
                 System.out.println("Come on, try to do something useful ! ");
