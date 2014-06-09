@@ -22,9 +22,11 @@ public class ChatData extends NetMessage {
      * Type 9 : Demand spare connection
      * Type 10 : Activate spare connection
      * Type 11 : Spare switching performed server side
+     * Type 12 : Private message
      * Type 42 : Errors notifications
      */
     private String pseudo; // set by server only
+    public String pseudoDestination;
     private Boolean pseudoSet;
     /*
 

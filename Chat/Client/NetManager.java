@@ -2,6 +2,7 @@ package Chat.Client;
 
 
 import Chat.Netmessage.ChatData;
+import Chat.Netmessage.ChatMessage;
 import csc4509.FullDuplexMessageWorker;
 
 import java.io.IOException;
@@ -156,6 +157,10 @@ public class NetManager {
                         chdata.printErrorCode();
                     }
                     break;
+                case 12:
+                    // We received a private message
+                    System.out.println(chdata.getPseudo() +" ( as private ) : " + chdata.getMessage() );
+                    break;
                 default:
                     System.out.println("Unhandled number for message type : " + chdata.getType());
                     break;
@@ -252,6 +257,12 @@ public class NetManager {
                 System.out.println("Wrong message type not expected");
             }
         }
+    }
+
+    public void sendPrivateMessage( String pseudo, String dest, String message) {
+        ChatData chatData = new ChatData(0,12,message,pseudo);
+        chatData.pseudoDestination = dest;
+        sendMessage(chatData, "Error sending private message ! ");
     }
 
 }

@@ -286,4 +286,13 @@ public class State {
         }
         return res;
     }
+
+    public ClientStruct getClientByPseudo(String pseudo ) {
+        for( ClientStruct clientStruct : cliStrs) {
+            if( clientStruct.getPseudo().compareTo(pseudo) == 0 ) {
+                return clientStruct;
+            }
+        }
+        return null;
+    }
 }

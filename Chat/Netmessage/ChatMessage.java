@@ -8,4 +8,5 @@ import java.io.Serializable;
 public class ChatMessage implements Serializable {
     public String message;
     public String pseudo;
+    public String dest;
 }

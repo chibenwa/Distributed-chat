@@ -388,7 +388,7 @@ public class NetManager {
                     break;
                 }
                 // Check if the name is already used
-                if ( ! state.isPseudoTaken(rcv.getPseudo()) ) {
+                if ( ! state.isPseudoUsed(rcv.getPseudo()) ) {
                     System.out.println("Pseudo available");
                     // But first tell the client he was accepted
                     sendClientMessage(fdmw, new ChatData(0, 1, "", rcv.getPseudo()), " Failed to send ack for a pseudo demand");
@@ -502,6 +502,19 @@ public class NetManager {
                 }
                 state.addClient(cliStr);
                 sendClientMessage(cliStr.getFullDuplexMessageWorker(), new ChatData(0,11,""), "Failed to send Ack for spare connection activation");
+                break;
+            case 12:
+                // The client send a private message
+                String dest = rcv.pseudoDestination;
+                if( state.isPseudoTaken( dest ) ) {
+                    // TODO The user is on this server. Send it directly
+                    chdata = new ChatData(0,12,rcv.getMessage(), rcv.getPseudo());
+                    chdata.pseudoDestination = dest;
+                    sendClientMessage(state.getClientByPseudo(dest).getFullDuplexMessageWorker(), chdata, "Failed send private message to client directly connected");
+                } else {
+                    // TODO The user is on an other server. Broadcast it.
+                    sendRPrivateMessage(rcv.getMessage(), rcv.getPseudo(), dest);
+                }
                 break;
             case 42:
                 // The client send us an error
@@ -703,6 +716,17 @@ public class NetManager {
                 SocketAddress itsAddress = incomingMessage.getIdentifier();
                 System.out.println( itsAddress + " just joined us!");
                 break;
+            case 5:
+                // Private message
+                chatMessage = (ChatMessage) incomingMessage.getMessage();
+                String dest = chatMessage.dest;
+                if( state.isPseudoTaken( dest ) ) {
+                    // TODO The user is on this server. Send it directly
+                    ChatData chdata = new ChatData(0,12,chatMessage.message, chatMessage.pseudo);
+                    chdata.pseudoDestination = dest;
+                    sendClientMessage(state.getClientByPseudo(dest).getFullDuplexMessageWorker(), chdata, "Failed send private message to client directly connected ( after broadcast ) ");
+                }
+                break;
             default:
                 // Unknown message subtype received
                 System.out.println("Unknown message subtype received");
@@ -736,6 +760,16 @@ public class NetManager {
     public void sendRServerJoin(SocketAddress socketAddress) {
         InterServerMessage message = new InterServerMessage(0, 3, 4);
         message.setMessage( socketAddress );
+        rBroadcastManager.launchRBroadcast(message);
+    }
+
+    public void sendRPrivateMessage(String messageContent, String pseudo, String dest) {
+        InterServerMessage message = new InterServerMessage(0, 3, 5);
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.pseudo = pseudo;
+        chatMessage.message = messageContent;
+        chatMessage.dest = dest;
+        message.setMessage(chatMessage);
         rBroadcastManager.launchRBroadcast(message);
     }
 }
