@@ -19,10 +19,25 @@ import java.util.concurrent.locks.ReentrantLock;
  * License : GLP 2.0
  */
 public class State {
+    /**
+     * A lock to protect datas about serverss
+     */
     private final ReentrantLock serverLock = new ReentrantLock();
+    /**
+     * A lock to protect datas about clients
+     */
     private final ReentrantLock clientLock = new ReentrantLock();
+    /**
+     * List of connection structures for clients
+     */
     private List<ClientStruct> cliStrs;
+    /**
+     * List of connection structures for servers
+     */
     private  List<ConnectionStruct> serverStrs;
+    /**
+     * A value to know 
+     */
     private Boolean standAlone = true;
     private HashMap<String,Boolean> pseudoList;
     private ArrayList<SocketAddress> serverConnectedOnOurNetwork;
@@ -34,14 +49,15 @@ public class State {
         serverConnectedOnOurNetwork = new ArrayList<SocketAddress>();
     }
 
-    /*
-    A small utility method : we construct the list of the client directly connected to this server.
-
-    Two usage nowadays :
-
-        - Display it on clavier demand ( it will stay for debug purpose )
-        - Answer client to this question : who is connected directly to this server
-
+    /**
+     * A small utility method : we construct the list of the client directly connected to this server.
+     *
+     * Two usage nowadays :
+     *
+     *    - Display it on clavier demand ( it will stay for debug purpose )
+     *    - Answer client to this question : who is connected directly to this server
+     *
+     * @return
      */
 
     public String buildClientList() {
@@ -60,13 +76,17 @@ public class State {
         return pseudoChunk;
     }
 
-    /*
-        Another utility function,
-        which will send a message
-        to all clients connected
-        and registrated to our
-        server.
+
+    /**
+     * Another utility function,
+     * which will send a message
+     * to all clients connected
+     * and registrated to our
+     * server.
+     *
+     * @param mes
      */
+
 
     public void broadcast( ChatData mes ) {
         clientLock.lock();
@@ -80,12 +100,14 @@ public class State {
         clientLock.unlock();
     }
 
-    /*
-        Utility function used twice :
+    /**
+     * Utility function used twice :
 
-        Tells us if we already
-        registered the given
-        connection as a server
+     Tells us if we already
+     registered the given
+     connection as a server
+     * @param fdmw
+     * @return
      */
 
     public Boolean isServerConnectionEstablished( FullDuplexMessageWorker fdmw ) {
@@ -100,6 +122,13 @@ public class State {
         return false;
     }
 
+
+    /**
+     *
+     * We add a server Struct which reprensent a server connection to our list of connected servers
+     *
+     * @param cliStr
+     */
 
     public void addServer(ClientStruct cliStr){
         serverLock.lock();
