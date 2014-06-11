@@ -287,6 +287,14 @@ public class NetManager {
         sendInterServerMessage(full, ism, ioErrorMessage);
     }
 
+    /**
+     * Send a message to an other server.
+     *
+     * @param full FullDuplexMessageWorker we will send the message on
+     * @param mes Message to send
+     * @param ioErrorMessage Message to display on io error while sending it
+     */
+
     private void sendInterServerMessage( FullDuplexMessageWorker full,  InterServerMessage mes, String ioErrorMessage ) {
         mes.setIdentifier(p);
         mes.setElectionWinner( electionHandler.getWin() );
@@ -297,6 +305,14 @@ public class NetManager {
             ioe.printStackTrace();
         }
     }
+
+    /**
+     * Send a message to a client.
+     *
+     * @param full FullDuplexMessageWorker we will send the message on
+     * @param chatData Message to send
+     * @param ioErrorMessage Message to display on io error while sending it
+     */
 
     private void sendClientMessage( FullDuplexMessageWorker full, ChatData chatData, String ioErrorMessage ) {
         try{
@@ -654,29 +670,55 @@ public class NetManager {
         }
     }
 
-    /*
-        We need to propagate a few methods to our ElectionHandler
+    /**
+     * Proxy method to launch an election
      */
 
     public void launchElection() {
         electionHandler.launchElection();
     }
 
+    /**
+     * Proxy method to display Electoral state in the terminal
+     */
+
     public void displayElectoralState() {
         electionHandler.displayElectoralState();
     }
 
+    /**
+     * Accessor for the state of our server
+     *
+     * @return State of our server
+     */
     protected State getState() {
         return state;
     }
+
+    /**
+     * Proxy method to obtain client pseudo list String
+     *
+     * @return pseudo list String
+     */
 
     public String buildClientList() {
         return state.buildClientList();
     }
 
+    /**
+     * Proxy method to get server list string
+     *
+     * @return server list string
+     */
+
     public String getServerList() {
         return state.getServerList();
     }
+
+    /**
+     * Manage server sub message. called by manageServerMessages
+     * @param incomingMessage Message to manage
+     */
 
     private void manageServerMessageSubtype( InterServerMessage incomingMessage) {
         ChatData chatData;
@@ -740,6 +782,12 @@ public class NetManager {
         }
     }
 
+    /**
+     * Send a R broadcast message to notify that a client joined our network
+     *
+     * @param pseudo Pseudo of the client that just joined our network
+     */
+
     public void sendRClientJoin(String pseudo) {
         InterServerMessage message = new InterServerMessage(0, 3, 1);
         message.setMessage( pseudo );
@@ -747,12 +795,25 @@ public class NetManager {
         state.broadcast(new ChatData(0, 3, "", pseudo));
     }
 
+    /**
+     * Send a R broadcast message to notify that a client leaved our network
+     *
+     * @param pseudo Pseudo of the client that just leaved our network
+     */
+
     public void sendRClientLeave(String pseudo) {
         InterServerMessage message = new InterServerMessage(0, 3, 2);
         message.setMessage( pseudo );
         rBroadcastManager.launchRBroadcast(message);
         state.broadcast(new ChatData(0, 4, "", pseudo));
     }
+
+    /**
+     * Send a R broadcast message to send a message form one of our clients
+     *
+     * @param messageContent Message content
+     * @param pseudo The pseudo of the client that sent the message
+     */
 
     public void sendRMessage(String messageContent, String pseudo) {
         InterServerMessage message = new InterServerMessage(0, 3, 3);
@@ -763,6 +824,14 @@ public class NetManager {
         rBroadcastManager.launchRBroadcast(message);
     }
 
+    /**
+     * RBroadcast a private message ( that is addressed to a client connected on an other server ).
+     *
+     * @param messageContent Message content
+     * @param pseudo Sender pseudo
+     * @param dest Destination pseudo
+     */
+
     public void sendRPrivateMessage(String messageContent, String pseudo, String dest) {
         InterServerMessage message = new InterServerMessage(0, 3, 5);
         ChatMessage chatMessage = new ChatMessage();
@@ -772,9 +841,20 @@ public class NetManager {
         message.setMessage(chatMessage);
         rBroadcastManager.launchRBroadcast(message);
     }
+
+    /**
+     * Proxy method to launch an echo to get the list of server that are on our network
+     */
+
     public void launchServerDiscovery() {
         echoServerListManager.launchEcho();
     }
+
+    /**
+     * Method to export your server list ( that is up to date ) on the network via a R broadcast.
+     *
+     * @param serverList Server list to export
+     */
 
     private void launchRServerSet(ArrayList<Serializable> serverList) {
         InterServerMessage message = new InterServerMessage(0, 3, 6);
@@ -782,9 +862,19 @@ public class NetManager {
         rBroadcastManager.launchRBroadcast(message);
     }
 
-    public void lauchPseudoDiscovery() {
+    /**
+     * Proxy method to launch a pseudo list discovery on our network
+     */
+
+    public void launchPseudoDiscovery() {
         echoPseudoListManager.launchEcho();
     }
+
+    /**
+     * Method to export your pseudo list ( that is up to date ) on the network via a R broadcast.
+     *
+     * @param pseudoList Pseudo list to export
+     */
 
     private void launchRPseudoSet(ArrayList<Serializable> pseudoList) {
         InterServerMessage message = new InterServerMessage(0, 3, 7);

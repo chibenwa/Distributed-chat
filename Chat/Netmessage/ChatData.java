@@ -6,6 +6,22 @@ package Chat.Netmessage;
  * Message exchanged between servers
  *
  * License : GLP 2.0
+ *
+ * Serializable that carry a chat message between client and server
+ *
+ * Error code :
+ *
+ *   Type 0 : No error
+ *   Type 1 : The pseudo is already used
+ *   Type 2 : You should ask first for a pseudo
+ *   Type 3 : Client should not accept a login
+ *   Type 4 : Client should not send join notification
+ *   Type 5 : Client should not send Leave notification
+ *   Type 6 : Message type not taken in account by protocol management
+ *   Type 7 : When requesting a login, you should set the login field
+ *   Type 8 : Client should not send a user list to a server
+ *   Type 9 : Server provided a user list while the client never asked for
+ *   Type 10 : You are already active on this node, we can not set up spare connection !
  */
 public class ChatData extends NetMessage {
 
@@ -27,23 +43,6 @@ public class ChatData extends NetMessage {
      * Type 12 : Private message
      * Type 13 : Demand for server list ( + answer )
      * Type 42 : Errors notifications
-     */
-
-    /**
-     *
-     * Error codes
-     *
-     *   Type 0 : No error
-     *   Type 1 : The pseudo is already used
-     *   Type 2 : You should ask first for a pseudo
-     *   Type 3 : Client should not accept a login
-     *   Type 4 : Client should not send join notification
-     *   Type 5 : Client should not send Leave notification
-     *   Type 6 : Message type not taken in account by protocole management
-     *   Type 7 : When requesting a login, you should set the login field
-     *   Type 8 : Client should not send a user list to a server
-     *   Type 9 : Server provided a user list while the client never asked for
-     *   Type 10 : You are already active on this node, we can not set up spare connection !
      */
 
     /**
@@ -153,18 +152,6 @@ public class ChatData extends NetMessage {
      * Print the message for a given error ( set in the message )
      */
     public void printErrorCode() {
-        /*
-        Type 0 : No error
-        Type 1 : The pseudo is already used
-        Type 2 : You should ask first for a pseudo
-        Type 3 : Client should not accept a login
-        Type 4 : Client should not send join notification
-        Type 5 : Client should not send Leave notification
-        Type 6 : Message type not taken in account by protocole management
-        Type 7 : When requesting a login, you should set the login field
-        Type 8 : Client should not send a user list to a server
-        Type 9 : Server provided a user list while the client never asked for
-        */
         switch(errorCode) {
             case 0 :
                 System.out.println("No error");

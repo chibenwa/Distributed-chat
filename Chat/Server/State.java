@@ -4,7 +4,6 @@ import Chat.Netmessage.ChatData;
 import Chat.Netmessage.ElectionToken;
 import Chat.Netmessage.InterServerMessage;
 import Chat.Utils.ClientStruct;
-import Chat.Utils.ConnectionStruct;
 import csc4509.FullDuplexMessageWorker;
 
 import java.io.IOException;
@@ -34,7 +33,7 @@ public class State {
     /**
      * List of connection structures for servers
      */
-    private  List<ConnectionStruct> serverStrs;
+    private  List<ClientStruct> serverStrs;
     /**
      * A value to know if the server runs in stand alone mode or if it is in connected mode ( to other servers )
      */
@@ -53,7 +52,7 @@ public class State {
      */
     public State() {
         cliStrs = new ArrayList<ClientStruct>();
-        serverStrs = new ArrayList<ConnectionStruct>();
+        serverStrs = new ArrayList<ClientStruct>();
         pseudoList = new HashMap<String, Boolean>();
         serverConnectedOnOurNetwork = new ArrayList<SocketAddress>();
     }
@@ -121,7 +120,7 @@ public class State {
 
     public Boolean isServerConnectionEstablished( FullDuplexMessageWorker fdmw ) {
         serverLock.lock();
-        for( ConnectionStruct conStr : serverStrs) {
+        for( ClientStruct conStr : serverStrs) {
             if( conStr.getFullDuplexMessageWorker() == fdmw ) {
                 serverLock.unlock();
                 return true;
@@ -160,7 +159,7 @@ public class State {
         serverLock.lock();
         String res = "";
         Boolean first = true;
-        for( ConnectionStruct cstr : serverStrs ) {
+        for( ClientStruct cstr : serverStrs ) {
             if( first ) {
                 first = false;
             } else {
@@ -192,7 +191,7 @@ public class State {
         clientLock.lock();
         serverLock.lock();
         // No fear for dead locks as this is the only place were we lock for both clients and servers locks
-        for( ConnectionStruct cstr : serverStrs) {
+        for( ClientStruct cstr : serverStrs) {
             try{
                 cstr.getFullDuplexMessageWorker().sendMsg(2, new InterServerMessage(0,2));
             } catch(IOException ioe) {
@@ -292,7 +291,7 @@ public class State {
     public void broadcastToken( ElectionToken electionToken, String ioErrorMessage) {
         serverLock.lock();
         // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
-        for( ConnectionStruct connectionStruct : serverStrs) {
+        for( ClientStruct connectionStruct : serverStrs) {
             try {
                 connectionStruct.getFullDuplexMessageWorker().sendMsg(1, electionToken);
             } catch (IOException ioe) {
@@ -312,7 +311,7 @@ public class State {
 
     public void broadcastTokenWithoutFather(ClientStruct father, ElectionToken newToken) {
         // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
-        for( ConnectionStruct connectionStruct : serverStrs) {
+        for( ClientStruct connectionStruct : serverStrs) {
             if( connectionStruct != father) {
                 try {
                     connectionStruct.getFullDuplexMessageWorker().sendMsg(1, newToken);
@@ -332,7 +331,7 @@ public class State {
 
     public void broadcastTokenWithoutFather(ClientStruct father, InterServerMessage newToken) {
         // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
-        for( ConnectionStruct connectionStruct : serverStrs) {
+        for( ClientStruct connectionStruct : serverStrs) {
             if( connectionStruct != father) {
                 try {
                     connectionStruct.getFullDuplexMessageWorker().sendMsg(2, newToken);
@@ -350,7 +349,7 @@ public class State {
      */
 
     public void broadcastInterServerMessage( InterServerMessage mes) {
-        for( ConnectionStruct connectionStruct : serverStrs) {
+        for( ClientStruct connectionStruct : serverStrs) {
             try {
                 connectionStruct.getFullDuplexMessageWorker().sendMsg(2, mes);
             } catch (IOException ioe) {

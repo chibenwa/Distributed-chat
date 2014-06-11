@@ -68,7 +68,7 @@ public class ServerClavierThread extends ClavierThread {
                 break;
             case 6:
                 //netManager.launchServerDiscovery();
-                netManager.lauchPseudoDiscovery();
+                netManager.launchPseudoDiscovery();
                 break;
             default:
                 System.out.println("Command unrecognise...");

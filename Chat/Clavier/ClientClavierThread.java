@@ -48,7 +48,6 @@ public class ClientClavierThread extends ClavierThread {
         System.out.println("Press 5 to set a spare connection");
         System.out.println("Press 6 to send a private message");
         System.out.println("Press 7 to obtain server list");
-        System.out.println("Et oui je suis une sorte de répondeur!");
         System.out.println("");
     }
 

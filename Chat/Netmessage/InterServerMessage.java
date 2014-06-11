@@ -19,17 +19,6 @@ import java.net.SocketAddress;
  */
 public class InterServerMessage extends NetMessage {
 
-    /**
-        Type 0 : no SubType
-        Type 1 : Client join
-        Type 2 : Client leave
-        Type 3 : Client message
-        Type 4 : Coming in your network
-        Type 5 : private message forward
-        Type 6 : Set your list of servers
-        Type 7 : Set the list of clients
-     */
-
     private int subType = 0;
 
     /**
