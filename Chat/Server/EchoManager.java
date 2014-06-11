@@ -3,6 +3,7 @@ package Chat.Server;
 import Chat.Netmessage.InterServerMessage;
 import Chat.Utils.ClientStruct;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.SocketAddress;
 import java.util.ArrayList;
@@ -26,15 +27,15 @@ public class EchoManager {
     /**
      * A hash map that holds data we collected for each wave
      */
-    private HashMap<SocketAddress, HashMap< Integer, ArrayList<Serializable> > > dataCollected;
+    private HashMap<SocketAddress, HashMap<Integer, ArrayList<Serializable>>> datasCollected;
     /**
      * Number of messages we received for each wave
      */
-    private HashMap<SocketAddress, HashMap< Integer, Integer> > messageCount;
+    private HashMap<SocketAddress, HashMap<Integer, Integer>> messageCount;
     /**
      * The server we should return our collected data to.
      */
-    private HashMap<SocketAddress, HashMap< Integer, ClientStruct> > fathers;
+    private HashMap<SocketAddress, HashMap<Integer, ClientStruct>> fathers;
     /**
      * We should be able to recognize our identifier
      */
@@ -50,7 +51,7 @@ public class EchoManager {
      * @param _p Identifier of this server
      */
     public void setP(SocketAddress _p) {
-        if( p == null) {
+        if (p == null) {
             p = _p;
         }
     }
@@ -60,9 +61,9 @@ public class EchoManager {
      *
      * @param _netManager The NetManager we will use to send messages
      */
-    public EchoManager( NetManager _netManager) {
+    public EchoManager(NetManager _netManager) {
         netManager = _netManager;
-        dataCollected = new HashMap<SocketAddress, HashMap<Integer, ArrayList<Serializable>>>();
+        datasCollected = new HashMap<SocketAddress, HashMap<Integer, ArrayList<Serializable>>>();
         messageCount = new HashMap<SocketAddress, HashMap<Integer, Integer>>();
         fathers = new HashMap<SocketAddress, HashMap<Integer, ClientStruct>>();
     }
@@ -74,67 +75,65 @@ public class EchoManager {
      * @param father The server connection that sent us this message
      * @return Data collected from the echo from the message our server should deal with. If the Echo is not over, or if we are not at the origin of this echo, null pointer is returned.
      */
-
     public ArrayList<Serializable> processInput(InterServerMessage message, ClientStruct father) {
         SocketAddress identifier = message.getIdentifier();
         int nbEcho = message.getSeq();
-        if( dataCollected.get(identifier) == null ) {
+        if (datasCollected.get(identifier) == null) {
             System.out.println("First wave from " + identifier);
             // First echo wave launched by this server
-            dataCollected.put( identifier, new HashMap< Integer, ArrayList<Serializable>>() );
-            messageCount.put( identifier, new HashMap<Integer, Integer>());
-            fathers.put( identifier, new HashMap<Integer, ClientStruct>());
+            datasCollected.put(identifier, new HashMap<Integer, ArrayList<Serializable>>());
+            messageCount.put(identifier, new HashMap<Integer, Integer>());
+            fathers.put(identifier, new HashMap<Integer, ClientStruct>());
         }
-        HashMap< Integer, ArrayList<Serializable>> originDatas = dataCollected.get( identifier );
-        HashMap<Integer, Integer> originMessagesCount = messageCount.get( identifier);
+        HashMap<Integer, ArrayList<Serializable>> originData = datasCollected.get(identifier);
+        HashMap<Integer, Integer> originMessagesCount = messageCount.get(identifier);
         Boolean firstWaveMessage = false;
-        if( originDatas.get(nbEcho) == null ) {
+        if (originData.get(nbEcho) == null) {
             // New wave here
             System.out.println("New wave : " + nbEcho);
-            originDatas.put(nbEcho, new ArrayList<Serializable>());
+            originData.put(nbEcho, new ArrayList<Serializable>());
             originMessagesCount.put(nbEcho, 0);
             fathers.get(identifier).put(nbEcho, father);
             firstWaveMessage = true;
         }
         // Increment wave number
-        originMessagesCount.put(nbEcho, originMessagesCount.get(nbEcho) + 1 );
-        System.out.println("Current messages from this wave : " + originMessagesCount.get(nbEcho) );
-        // Merge datas...
-        ArrayList<Serializable> waveDatas = originDatas.get(nbEcho);
+        originMessagesCount.put(nbEcho, originMessagesCount.get(nbEcho) + 1);
+        System.out.println("Current messages from this wave : " + originMessagesCount.get(nbEcho));
+        // Merge data...
+        ArrayList<Serializable> waveData = originData.get(nbEcho);
         ArrayList<Serializable> messageContent = (ArrayList<Serializable>) message.getMessage();
-        for(Serializable serializable : messageContent) {
-            if( !isInDatas(waveDatas, serializable)) {
-                waveDatas.add( serializable);
+        for (Serializable serializable : messageContent) {
+            if (!isInData(waveData, serializable)) {
+                waveData.add(serializable);
             }
         }
-        if( firstWaveMessage ) {
+        if (firstWaveMessage) {
             ArrayList<Serializable> nodeDatas = getNodeData();
-            for(Serializable data : nodeDatas) {
-                if( !isInDatas(waveDatas, data))
-                    waveDatas.add(data);
+            for (Serializable data : nodeDatas) {
+                if (!isInData(waveData, data))
+                    waveData.add(data);
             }
-            message.setMessage(waveDatas);
+            message.setMessage(waveData);
             netManager.getState().broadcastTokenWithoutFather(father, message);
         }
-        if( originMessagesCount.get(nbEcho) == netManager.getState().getNbConnectedServers() ) {
+        if (originMessagesCount.get(nbEcho) == netManager.getState().getNbConnectedServers()) {
             System.out.println("Last message from the wave ;-)");
             // Last message of our broadcast
-            if( identifier.toString().compareTo(p.toString()) == 0) {
+            if (identifier.toString().compareTo(p.toString()) == 0) {
                 // We launched it. Return it to our manager
-                ArrayList<Serializable> result = waveDatas;
-                // Memory cleanup
-                messageCount.get( identifier).remove(nbEcho);
-                dataCollected.get( identifier).remove(nbEcho);
-                return result;
+                messageCount.get(identifier).remove(nbEcho);
+                datasCollected.get(identifier).remove(nbEcho);
+                return waveData;
             } else {
-               System.out.println("Send result to father ...");
-               message.setMessage( waveDatas );
-               netManager.sendInterServerMessage( fathers.get(identifier).get(nbEcho),
-                       message,
-                       "Failed to send info back to father in Echo manager" );
-               // Memory cleanup
-               messageCount.get( identifier).remove(nbEcho);
-               dataCollected.get( identifier).remove(nbEcho);
+                System.out.println("Send result to father ...");
+                message.setMessage(waveData);
+                try {
+                    fathers.get(identifier).get(nbEcho).getFullDuplexMessageWorker().sendMsg(2, message);
+                } catch (IOException ioe) {
+                    System.out.println("Failed to send report to father");
+                }
+                messageCount.get(identifier).remove(nbEcho);
+                datasCollected.get(identifier).remove(nbEcho);
             }
         }
         return null;
@@ -147,9 +146,9 @@ public class EchoManager {
      * @param candidate The value we want to find in the data
      * @return True if candidate is in data, false in other cases
      */
-    private Boolean isInDatas( ArrayList<Serializable> data, Serializable candidate ) {
-        for( Serializable serializable : data) {
-            if( isSerializableEqual(serializable, candidate) ) {
+    private Boolean isInData(ArrayList<Serializable> data, Serializable candidate) {
+        for (Serializable serializable : data) {
+            if (isSerializableEqual(serializable, candidate)) {
                 return true;
             }
         }
@@ -187,9 +186,9 @@ public class EchoManager {
      *
      * @param echoId is the type of echo we want to launch.
      */
-    protected void launchEcho( int echoId ) {
+    protected void launchEcho(int echoId) {
         serverSequence++;
-        InterServerMessage message = new InterServerMessage(serverSequence,echoId);
+        InterServerMessage message = new InterServerMessage(serverSequence, echoId);
         message.setIdentifier(p);
         ArrayList<Serializable> messageContent = getNodeData();
         message.setMessage(messageContent);
@@ -197,3 +196,4 @@ public class EchoManager {
     }
 
 }
+

@@ -371,11 +371,11 @@ public class NetManager {
      */
 
     private  void handleClientMessage(ClientStruct cliStr) {
-        FullDuplexMessageWorker fdmw = cliStr.getFullDuplexMessageWorker();
-        ChatData chdata;
+        FullDuplexMessageWorker duplexMessageWorker = cliStr.getFullDuplexMessageWorker();
+        ChatData localChatData;
         ChatData rcv;
         try {
-            rcv = (ChatData) fdmw.getData();
+            rcv = (ChatData) duplexMessageWorker.getData();
         } catch (IOException ioe) {
             // We removed the fail client from our pool of clients...
             System.out.println(" Failed to receive message");
@@ -423,7 +423,7 @@ public class NetManager {
                     sendClientError(cliStr, 1, "Failed to send error for error for an alredy used login");
                 }
             case 1:
-                // Here we have an acknolgement for pseudo -> error
+                // Here we have an acknowledgment for pseudo -> error
                 sendClientError(cliStr, 3, "Failed to send error for a client who sent an ack for pseudo");
                 break;
             case 2:
@@ -432,9 +432,10 @@ public class NetManager {
                 // Broadcast it
                 if (cliStr.hasPseudo()) {
                     System.out.println("new message content " + rcv.getMessage());
-                    state.broadcast(new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo()));
                     if( ! state.getStandAlone() ) {
                         sendRMessage( rcv.getMessage(), cliStr.getPseudo());
+                    } else {
+                        state.broadcast(new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo()));
                     }
                 } else {
                     System.out.println("Need pseudo man");
@@ -458,7 +459,7 @@ public class NetManager {
                 //Here we have a deconnection request
                 System.out.println("Deconnection request handled");
                 sendClientLeave(cliStr);
-                closeSocket( fdmw );
+                closeSocket( duplexMessageWorker );
                 break;
             case 7:
                 System.out.println("Man, a user list request !");
@@ -466,8 +467,8 @@ public class NetManager {
                 if (cliStr.hasPseudo()) {
                     // Ok, we now him, let send it
                     System.out.println("Yes he is authentificated and we can send the user list ( we will really do it ! ) ");
-                    chdata = new ChatData(0, 8, state.getClientsString(), cliStr.getPseudo());
-                    sendClientMessage(cliStr, chdata, "Could not send the user list");
+                    localChatData = new ChatData(0, 8, state.getClientsString(), cliStr.getPseudo());
+                    sendClientMessage(cliStr, localChatData, "Could not send the user list");
                 } else {
                     // Who's that guy? Kick him dude !
                     System.out.println("Non authentificated user can not ask for user list...");
@@ -502,9 +503,9 @@ public class NetManager {
                 // The client send a private message
                 String dest = rcv.pseudoDestination;
                 if( state.isPseudoTaken( dest ) ) {
-                    chdata = new ChatData(0,12,rcv.getMessage(), rcv.getPseudo());
-                    chdata.pseudoDestination = dest;
-                    sendClientMessage(state.getClientByPseudo(dest), chdata, "Failed send private message to client directly connected");
+                    localChatData = new ChatData(0,12,rcv.getMessage(), rcv.getPseudo());
+                    localChatData.pseudoDestination = dest;
+                    sendClientMessage(state.getClientByPseudo(dest), localChatData, "Failed send private message to client directly connected");
                 } else {
                     sendRPrivateMessage(rcv.getMessage(), rcv.getPseudo(), dest);
                 }

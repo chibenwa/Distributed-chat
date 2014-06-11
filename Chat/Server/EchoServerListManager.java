@@ -35,7 +35,7 @@ public class EchoServerListManager extends EchoManager {
      * @return Directly connected servers ( as Serializable )
      */
 
-    protected ArrayList<Serializable> getNodeDatas() {
+    protected ArrayList<Serializable> getNodeData() {
         ArrayList<Serializable> res = new ArrayList<Serializable>();
         res.add(p);
         return res;

@@ -40,7 +40,7 @@ public class EchoPseudoListManager extends EchoManager {
      *
      * @return pseudo list
      */
-    protected ArrayList<Serializable> getNodeDatas() {
+    protected ArrayList<Serializable> getNodeData() {
         return netManager.getState().getConnectedClients();
     }
 
