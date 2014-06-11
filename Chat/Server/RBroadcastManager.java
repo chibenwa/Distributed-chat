@@ -1,6 +1,8 @@
 package Chat.Server;
 
 import Chat.Netmessage.InterServerMessage;
+
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,16 +44,6 @@ public class RBroadcastManager {
     }
 
     /**
-     * Add the server to the one that launched a R broadcast
-     *
-     * @param identifier The server that launched a broadcast
-     */
-    public void addServer(SocketAddress identifier) {
-        if( RMessageReceived.get( identifier ) == null )
-            RMessageReceived.put( identifier, new ArrayList<Integer>() );
-    }
-
-    /**
      * Manage a message received that happens to be a RBroadcast message.
      *
      * @param message The message just received, and related to RBroadcast.
@@ -59,10 +51,15 @@ public class RBroadcastManager {
      */
     public Boolean manageInput( InterServerMessage message) {
         SocketAddress identifier = message.getIdentifier();
+        //SocketAddress stock = new InetSocketAddress( identifier );
         int messageSeq = message.getSeq();
+        System.out.println("Wave identifier : " + identifier + " " +messageSeq);
         if( ! processMessageIds(identifier, messageSeq)) {
             // First time we saw this message -> broadcast it...
+            message.setIdentifier(identifier);
+            System.out.println("First time we have this message. Accept it.");
             netManager.getState().broadcastInterServerMessage(message);
+            System.out.println("Broadcast done for " + message.getIdentifier() + " " + message.getSeq() );
             return true;
         }
         return false;
@@ -76,34 +73,41 @@ public class RBroadcastManager {
      * @return True if we already aw this wave, false in other cases.
      */
     private Boolean processMessageIds(SocketAddress identifier, int seq) {
+        System.out.println("Processing for " + identifier);
         ArrayList<Integer> messageIdentifierIds = RMessageReceived.get(identifier);
         if( messageIdentifierIds == null ) {
             System.out.println("First time this server sends us a RBroadcast message");
             messageIdentifierIds = new ArrayList<Integer>();
             messageIdentifierIds.add(seq);
             RMessageReceived.put(identifier, messageIdentifierIds);
+            System.out.println("Process done for " + identifier);
             return false;
         }
         for( Integer i : messageIdentifierIds) {
             if( i == seq ) {
+                System.out.println("Process done for " + identifier);
                 return true;
             }
         }
         messageIdentifierIds.add(seq);
+        System.out.println("Process done for " + identifier);
         return false;
     }
 
     /**
-     *
-     * @param message
+     * We use this method to send a R broadcast for a given message
+     * @param message The given message
      */
+
     public void launchRBroadcast(InterServerMessage message) {
         // First register our message
         ArrayList<Integer> ourMessages = RMessageReceived.get(ourAddress);
-        message.setSeq( ourSeq++ );
+        ourSeq++;
+        message.setSeq( ourSeq );
         message.setIdentifier(ourAddress);
         ourMessages.add(message.getSeq());
         netManager.getState().broadcastInterServerMessage(message);
+        System.out.println("================================ Seding RBO " + ourAddress + " " +ourSeq+ " ==========================");
     }
 
     /**

@@ -238,9 +238,6 @@ public class ElectionHandler {
                             ElectionToken winner = new ElectionToken(1);
                             winner.setR(p);
                             netManager.getState().broadcastToken(winner,"Error while broadcasting our victory");
-                            // Tasks that must be performed by the winner
-                            netManager.launchPseudoDiscovery();
-                            netManager.launchServerDiscovery();
                         } else {
                             System.out.println("Answer dad");
                             // All our neighbours have answered us so we can reply to our father
@@ -273,6 +270,9 @@ public class ElectionHandler {
                         if (win.toString().compareTo(p.toString()) == 0) {
                             System.out.println("We won");
                             state = 2;
+                            // Tasks that must be performed by the winner
+                            netManager.launchPseudoDiscovery();
+                            netManager.launchServerDiscovery();
                         } else {
                             System.out.println("We lost");
                             state = 1;

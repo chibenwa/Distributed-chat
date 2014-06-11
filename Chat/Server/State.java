@@ -334,7 +334,9 @@ public class State {
     public void broadcastInterServerMessage( InterServerMessage mes) {
         for( ClientStruct connectionStruct : serverStrs) {
             netManager.sendInterServerMessage(connectionStruct, mes, "Error while broadcasting server message");
+            System.out.print(".");
         }
+        System.out.println();
     }
 
     /**
@@ -359,7 +361,8 @@ public class State {
         ArrayList<String> toNotifyDisconnection = new ArrayList<String>();
         ArrayList<String> toNotifyArrival = new ArrayList<String>();
         for(Serializable serializable : _pseudoList) {
-            if( !isPseudoTaken( (String) serializable ) ) {
+           // if( !isPseudoTaken( (String) serializable ) ) {
+           if( !isPseudoUsed( (String) serializable ) ) {
                 // absent from this server. Add it.
                 String actualPseudo = (String) serializable;
                 toNotifyArrival.add( actualPseudo);

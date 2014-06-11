@@ -293,7 +293,6 @@ public class NetManager {
      */
 
     protected void sendInterServerMessage( ClientStruct clientStruct,  InterServerMessage mes, String ioErrorMessage ) {
-        mes.setIdentifier(p);
         mes.setElectionWinner( electionHandler.getWin() );
         try {
             clientStruct.getFullDuplexMessageWorker().sendMsg(2, mes);
@@ -410,7 +409,6 @@ public class NetManager {
                     state.addClient(cliStr);
                     state.addPseudo(rcv.getPseudo());
                     // And notify every one
-
                     if( state.getStandAlone() ) {
                         // No need to use a complex diffusion algorithm, we are stand alone...
                         state.broadcast(new ChatData(0, 3, "", rcv.getPseudo()));
@@ -432,10 +430,9 @@ public class NetManager {
                 // Broadcast it
                 if (cliStr.hasPseudo()) {
                     System.out.println("new message content " + rcv.getMessage());
+                    state.broadcast(new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo()));
                     if( ! state.getStandAlone() ) {
                         sendRMessage( rcv.getMessage(), cliStr.getPseudo());
-                    } else {
-                        state.broadcast(new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo()));
                     }
                 } else {
                     System.out.println("Need pseudo man");
@@ -567,12 +564,7 @@ public class NetManager {
                     electionHandler.unlock();
                     System.out.println("Request for server connection received");
                     state.addServer(cliStr);
-                    InfoForJoiningServer infoForJoiningServer = new InfoForJoiningServer();
-                    infoForJoiningServer.pseudoList = state.getConnectedClients();
-                    infoForJoiningServer.serversList = state.getServerConnectedOnOurNetwork();
                     InterServerMessage response = new InterServerMessage(0, 1);
-                    response.setMessage(infoForJoiningServer);
-                    // Then notify the other server that he had been correctly added :-)
                     sendInterServerMessage(cliStr, response, "Can not send ack for a server connection established");
                 }
                 break;
@@ -587,8 +579,7 @@ public class NetManager {
                     electionHandler.unlock();
                     System.out.println("Our request for opening a new connection to another server was answered");
                     state.addServer(cliStr);
-                   // manageElectoralStateOnServerConnection( incomingMessage.getElectionWinner(), cliStr, incomingMessage.getIdentifier(), (InfoForJoiningServer) incomingMessage.getMessage() );
-                    electionHandler.launchElection();
+                    manageElectoralStateOnServerConnection( incomingMessage.getElectionWinner() );
                 }
                 break;
             case 2:
@@ -609,8 +600,10 @@ public class NetManager {
                 break;
             case 3:
                 // R diffusion message
+                System.out.println("R broadcast detected");
                 if( rBroadcastManager.manageInput( incomingMessage) ) {
                     // We have to process this message : it was accepted
+                    System.out.println("R Broadcast accepted");
                     manageServerMessageSubtype(incomingMessage);
                 }
                 break;
@@ -708,23 +701,30 @@ public class NetManager {
             case 1:
                 // Client joining notification
                 String pseudo = (String)incomingMessage.getMessage();
+                System.out.println("Joining notif r broadcasted "+pseudo);
                 if( ! state.isPseudoTaken(pseudo) ) {
                     chatData = new ChatData(0, 3, "", pseudo);
                     state.broadcast(chatData);
                     state.addPseudo((String) incomingMessage.getMessage());
                 }
+                System.out.println();
                 break;
             case 2:
                 // Client leave notification ...
-                chatData = new ChatData(0,4,"", (String)incomingMessage.getMessage() );
+                pseudo = (String)incomingMessage.getMessage();
+                System.out.println("Leave notif r broadcasted");
+                chatData = new ChatData(0,4,"", pseudo );
                 state.broadcast(chatData);
                 state.removePseudo((String) incomingMessage.getMessage());
+                System.out.println();
                 break;
             case 3:
                 // Client message forwarded
+                System.out.println("Message r broadcasted");
                 ChatMessage chatMessage = (ChatMessage) incomingMessage.getMessage();
                 chatData = new ChatData(0,2,chatMessage.message, chatMessage.pseudo);
                 state.broadcast(chatData);
+                System.out.println();
                 break;
             case 4:
                 // Server tells us it just joined our network
@@ -924,6 +924,44 @@ public class NetManager {
         } catch(IOException ioe) {
             System.out.println(ioErrorMessage);
             // TODO Manage server error
+        }
+    }
+
+    /**
+     * Called when we establish a new connection with another server.
+     * We identify if it belongs to the same network ( based on the identifier of the election winner )
+     * If we are part of the same network, nothing is done. If we are not part of the same network, we elect a new election winner.
+     *
+     * The goal of this is simple : we should have only one winner per network. Both network with more that one node have an election winner.
+     * So another thing : If the node is alone, the most simple thing to do is the exact same thing...
+     *
+     * @param otherServerElectedIdentifier The elected winner of the other node, used to know if we belong to the same network.
+     */
+
+    private void manageElectoralStateOnServerConnection(SocketAddress otherServerElectedIdentifier) {
+        if (electionHandler.getWin() == null && otherServerElectedIdentifier == null) {
+            // No way to worry, both sides do not have elected someone...
+            // But wait, now that we are linked, we can elect someone, no ? It would not be stupid...
+            System.out.println("============================ Set server for both unelected networks");
+            electionHandler.launchElection();
+        } else {
+            if (electionHandler.getWin() == null ) {
+                electionHandler.launchElection();
+                return;
+            }
+            if (otherServerElectedIdentifier == null) {
+                // Other side network do not have an elected node. We do not know the amount of node of this network at this given moment
+                // ( even if deductible from message : things might have changed )
+                // The best option is to launch a new election so that we obtain a only elected node for the two freshly joined networks
+                System.out.println("=========================== Unknown topology on other side. Launching election");
+                electionHandler.launchElection();
+                return;
+            }
+            if (otherServerElectedIdentifier.toString().compareTo(electionHandler.getWin().toString()) != 0) {
+                // Both networks do not have the same elected winner. We should uniform that !
+                System.out.println("============================== Different winner on both networks");
+                electionHandler.launchElection();
+            }
         }
     }
 }
