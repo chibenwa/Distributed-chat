@@ -1,20 +1,43 @@
 package Chat.Clavier;
 
-import Chat.Server.NetManager;
 
 /**
  * Created by benwa on 6/9/14.
+ *
+ * This class process input for both a server and a client.
+ *
  */
 public class P2PClavierThread extends ClavierThread {
+    /**
+     * The NetworkManager we will use to send our servers messages
+     */
     private Chat.Server.NetManager serverNetManager;
+    /**
+     * The NetworkManager we will use to send our clients messages
+     */
     private Chat.Client.NetManager clientNetManager;
+    /**
+     * Our pseudo
+     */
     private String pseudo;
 
+    /**
+     * Constructor
+     *
+     * @param _serverNetManager The NetworkManager we will use to send our servers messages
+     * @param _clientNetManager The NetworkManager we will use to send our clients messages
+     */
     public P2PClavierThread(Chat.Server.NetManager _serverNetManager, Chat.Client.NetManager _clientNetManager) {
         super();
         serverNetManager = _serverNetManager;
         clientNetManager = _clientNetManager;
     }
+
+    /**
+     * Switch statement used to process user input
+     *
+     * @param command integer the user passed to our program
+     */
 
     public void switchStatement( int command) {
         switch (command) {
@@ -79,6 +102,10 @@ public class P2PClavierThread extends ClavierThread {
         }
     }
 
+    /**
+     * Display help message for client
+     */
+
     protected void displayHelp() {
         System.out.println();
         System.out.println("Enter a command to execute an action : ");
@@ -93,6 +120,12 @@ public class P2PClavierThread extends ClavierThread {
         System.out.println("Press 8 to connect to an other target");
         System.out.println();
     }
+
+    /**
+     * Establish our pseudo with the server
+     *
+     * @param _pseudo Our new pseudo
+     */
 
     private void setPseudo(String _pseudo) {
         clientNetManager.askNewLogin(_pseudo);
@@ -114,6 +147,10 @@ public class P2PClavierThread extends ClavierThread {
             setPseudo(_pseudo);
         }
     }
+
+    /**
+     * Basic init stuff we have to perform before launching the input loop
+     */
 
     protected void init() {
         System.out.println("Please enter a pseudo : ");

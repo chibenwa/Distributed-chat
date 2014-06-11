@@ -6,16 +6,34 @@ import Chat.Server.NetManager;
  * Created by benwa on 6/7/14.
  *
  * License : GLP 2.0
+ *
+ *  Base class for all input clavier for server
  */
 
 public class ServerClavierThread extends ClavierThread {
 
+    /**
+     * The NetworkManager we will use to send our messages
+     */
+
     NetManager netManager;
+
+    /**
+     * Constructor
+     *
+     * @param _netManager The NetworkManager we will use to send our messages
+     */
 
     public ServerClavierThread( NetManager _netManager) {
         super();
         netManager = _netManager;
     }
+
+    /**
+     * Switch statement used to process user input
+     *
+     * @param command integer the user passed to our program
+     */
 
     public void switchStatement( int command) {
         switch( command ) {
@@ -57,6 +75,10 @@ public class ServerClavierThread extends ClavierThread {
                 break;
         }
     }
+
+    /**
+     * Display help message for server
+     */
 
     protected void displayHelp() {
         System.out.println();

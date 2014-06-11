@@ -515,12 +515,10 @@ public class NetManager {
                 // The client send a private message
                 String dest = rcv.pseudoDestination;
                 if( state.isPseudoTaken( dest ) ) {
-                    // TODO The user is on this server. Send it directly
                     chdata = new ChatData(0,12,rcv.getMessage(), rcv.getPseudo());
                     chdata.pseudoDestination = dest;
                     sendClientMessage(state.getClientByPseudo(dest).getFullDuplexMessageWorker(), chdata, "Failed send private message to client directly connected");
                 } else {
-                    // TODO The user is on an other server. Broadcast it.
                     sendRPrivateMessage(rcv.getMessage(), rcv.getPseudo(), dest);
                 }
                 break;
@@ -726,7 +724,6 @@ public class NetManager {
                 chatMessage = (ChatMessage) incomingMessage.getMessage();
                 String dest = chatMessage.dest;
                 if( state.isPseudoTaken( dest ) ) {
-                    // TODO The user is on this server. Send it directly
                     ChatData chdata = new ChatData(0,12,chatMessage.message, chatMessage.pseudo);
                     chdata.pseudoDestination = dest;
                     sendClientMessage(state.getClientByPseudo(dest).getFullDuplexMessageWorker(), chdata, "Failed send private message to client directly connected ( after broadcast ) ");

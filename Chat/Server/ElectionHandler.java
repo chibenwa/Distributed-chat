@@ -16,46 +16,70 @@ import java.net.SocketAddress;
  * License : GLP 2.0
  */
 public class ElectionHandler {
-    // Stuff for elections
-    // If we add servers while an election is taking place, I fear bad things to happen.
-    // We will use a boolean to protect us from launching a new election and adding client while electing someone
+    /**
+     * If we add servers while an election is taking place, I fear bad things to happen.
+     * We will use a boolean to protect us from launching a new election and adding client while electing someone
+     */
     private Boolean isInElection = false;
-    // A mutex to protect us... Gods !
+    /**
+     * A mutex to protect us... Gods be with us !
+     */
     private Mutex electionMutex;
-    // SocketAddress is used instead of pid. Works well until you use NAT, and are not really lucky
+    /**
+     * SocketAddress is used instead of pid. Works well until you use NAT, and are not really lucky.
+     * It is more meaningful in a distributed environment
+     */
     private SocketAddress caw = null;
-    // The father is a current connection present in serverStr. We use it instead of a Socket address for conviniance ( far much better to send a message )
+    /**
+     * The father is a current connection present in serverStr. We use it instead of a Socket address for conviniance ( far much better to send a message )
+      */
     private ConnectionStruct father = null;
-    // Winner have to be compared with caw and p. So that is a SocketAddress.
+    /**
+     *  Winner have to be compared with caw and p. So that is a SocketAddress.
+     */
     private SocketAddress win = null;
-    // Same thing for p ( we will obtain it once for all )
+    /**
+     * Same thing for p that identify our server
+     */
     private SocketAddress p = null;
-    // Here comes integer. rec : number of Jeton for current wave received
-    // lrec : number of GAGNANT received
+    /**
+     * Here comes integer. rec : number of Jeton for current wave received
+     * lrec : number of GAGNANT received
+      */
     private int rec = 0;
     private int lrec = 0;
-    /*
-        State :
-         * 0 : sleeping
-         * 1 : looser
-         * 2 : winner
+    /**
+      *  State :
+      *   * 0 : sleeping
+      *   * 1 : looser
+      *   * 2 : winner
      */
     private int state = 0;
-    // To set P once only
+    /**
+     * A boolean used to set P once only
+      */
     private Boolean isPset = false;
-    //The NetManager we will use as support
+    /**
+     * The NetManager we will use as support for sending messages
+     */
     NetManager netManager;
 
+    /**
+     * Basic constructor
+     * @param _netManager The NetManager we will use as support for sending messages
+     */
     public ElectionHandler(NetManager _netManager) {
         electionMutex = new Mutex();
         netManager = _netManager;
     }
 
 
-    /*
-    We need to set the unique identifier we will use...
-    It is done when we open our server.
-    That is why it is not done in the constructor
+    /**
+     * We need to set the unique identifier we will use...
+     * It is done when we open our server.
+     * That is why it is not done in the constructor
+     *
+     * @param add Server identifier
      */
 
     public void setP ( SocketAddress add) {
@@ -68,12 +92,14 @@ public class ElectionHandler {
         }
     }
 
-    /*
-    We know if we are currently in an election
-
-    WARNING : not thread safe.
-    You need to use ElectionHandler::lock and ElectionHandler::unlock
-    to protect this method. You've been warned.
+    /**
+     * Tells if we are currently in an election
+     *
+     * WARNING : not thread safe.
+     * You need to use ElectionHandler::lock and ElectionHandler::unlock
+     * to protect this method. You've been warned.
+     *
+     * @return True if an election is currently taking pace, false in other cases.
      */
 
     public Boolean getIsInElection() {
@@ -81,12 +107,12 @@ public class ElectionHandler {
     }
 
 
-    /*
-        Possibly called by many threads.
-        We have to get worried...
-
-        This method launches an election by broadcasting a Jeton.
-        It also initialize the class for the next Election.
+    /**
+     *     Possibly called by many threads.
+     *     We have to get worried...
+     *
+     *    This method launches an election by broadcasting a Jeton.
+     *    It also initialize the class for the next Election.
      */
 
     public void launchElection() {
@@ -110,16 +136,21 @@ public class ElectionHandler {
         netManager.getState().broadcastToken(electionToken, "Problem generating an election");
     }
 
-    /*
-        In the coming code, we will have to know
-        our electoral status. And optionnaly display it
-        ( debug purpose )
+    /**
+     *     In the coming code, we will have to know
+     *     our electoral status. And optionally display it
+     *     ( debug purpose )
+     *
+     *     @return Our server's electoral state
      */
 
     public int getState() {
         return state;
     }
 
+    /**
+     * Prints in command line the electoral state of our server
+     */
     public void displayElectoralState() {
         switch (state) {
             case 0:
@@ -138,10 +169,12 @@ public class ElectionHandler {
     }
 
 
-    /*
-    We manage the input message related to our election.
-
-    This method is only used by NetManager thread ( async loop )
+    /**
+     * We manage the input message related to our election.
+     *
+     * This method is only used by NetManager thread ( async loop )
+     *
+     * @param cliStr The client that made the write
      */
 
     public void manageInput(ClientStruct cliStr) {
@@ -151,9 +184,8 @@ public class ElectionHandler {
         try{
             electionToken = (ElectionToken) fdmw.getData();
         }catch( IOException ioe) {
-            System.out.println("Cannot retreive Election data");
+            System.out.println("Cannot retrieve Election data");
             if( netManager.getState().isServerConnectionEstablished(fdmw) ) {
-                // TODO the server went away, RBroadcast it...
                 // We remove the failed server from our connections.
                 netManager.getState().removeServer(cliStr);
                 // In doubt launch an election ... If the removed server is either elected nor separating us from elected server.
@@ -262,19 +294,26 @@ public class ElectionHandler {
         }
     }
 
-    /*
-    We will need to lock electionMutex from other prt of the code.
+    /**
+     *  We will need to lock electionMutex from other prt of the code. That is what this method allows us to us
      */
     protected void lock() {
         electionMutex.lock();
     }
 
+    /**
+     *  We will need to unlock electionMutex from other prt of the code. That is what this method allows us to us
+     */
     protected void unlock() {
         electionMutex.unlock();
     }
 
-    /*
-    Convenient methods used in NetManager thread by manageInput
+    /**
+     * Convenient methods used in NetManager thread by manageInput to launch an election
+     *
+     * @param connectionStruct Connection structure to send the data to
+     * @param electionToken ElectionToken to broadcast
+     * @param ioErrorMessage Message to display on io error
      */
 
     private void sendElectionToken( ConnectionStruct connectionStruct, ElectionToken electionToken, String ioErrorMessage ) {
@@ -286,10 +325,12 @@ public class ElectionHandler {
     }
 
 
-    /*
-    The goal of the election is to send messages to the elected process but we may have no direct way to it.
-    One solution is to pass our message to the **father** ClientStruct, that will forward it.
-    That is why we have to get it for other parts of the code :
+    /**
+     * The goal of the election is to send messages to the elected process but we may have no direct way to it.
+     * One solution is to pass our message to the **father** ClientStruct, that will forward it.
+     * That is why we have to get it for other parts of the code :
+     *
+     * @return Client Connection structure for the father linking us to the elected server.
      */
     public ConnectionStruct getFather() {
         return father;
@@ -300,23 +341,5 @@ public class ElectionHandler {
     }
 
 
-    /*
-    When we establish a connection with another server, that is part of an elected network,
-    and that we are alone ( so with no elected process to refer to ), we can can just join
-    this election network. We have enough information to perform this task.
-
-    If the task fails, we have to tell our caller so that he can launch an election.
-     */
-
-    protected Boolean joinElectoralNetwork( ClientStruct _father, SocketAddress winner ) {
-        if( win == null && state == 0) {
-            father = _father;
-            state = 1;
-            win = winner;
-            return true;
-        } else {
-            return false;
-        }
-    }
 
 }

@@ -6,16 +6,36 @@ import Chat.Client.NetManager;
  * Created by benwa on 6/7/14.
  *
  * License : GLP 2.0
+ *
+ * Client's thread watching clavier input.
  */
 public class ClientClavierThread extends ClavierThread {
 
+    /**
+     * The NetworkManager we will use to send our messages
+     */
+
     private NetManager netManager;
+
+    /**
+     * Our pseudo
+     */
+
     private String pseudo;
 
+    /**
+     * Constructor
+     *
+     * @param _netManager The NetworkManager we will use to send our messages
+     */
     public ClientClavierThread( NetManager _netManager) {
         super();
         netManager = _netManager;
     }
+
+    /**
+     * Display help message for client
+     */
 
     protected void displayHelp() {
         System.out.println("This is the help message for this application");
@@ -31,6 +51,12 @@ public class ClientClavierThread extends ClavierThread {
         System.out.println("Et oui je suis une sorte de répondeur!");
         System.out.println("");
     }
+
+    /**
+     * Switch statement used to process user input
+     *
+     * @param command integer the user passed to our program
+     */
 
     protected void switchStatement(int command) {
         switch (command) {
@@ -87,6 +113,12 @@ public class ClientClavierThread extends ClavierThread {
         }
     }
 
+    /**
+     * Establish our pseudo with the server
+     *
+     * @param _pseudo Our new pseudo
+     */
+
     private void setPseudo(String _pseudo) {
         netManager.askNewLogin(_pseudo);
         while( !netManager.getHasLoginResponse() ) {
@@ -107,6 +139,10 @@ public class ClientClavierThread extends ClavierThread {
             setPseudo(_pseudo);
         }
     }
+
+    /**
+     * Basic init stuff we have to perform before launching the input loop
+     */
 
     protected void init() {
         System.out.println("Please enter a pseudo : ");

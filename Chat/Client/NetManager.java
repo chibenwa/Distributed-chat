@@ -2,7 +2,6 @@ package Chat.Client;
 
 
 import Chat.Netmessage.ChatData;
-import Chat.Netmessage.ChatMessage;
 import csc4509.FullDuplexMessageWorker;
 
 import java.io.IOException;
@@ -14,23 +13,71 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by benwa on 6/7/14.
- * <p/>
+ *
  * License : GLP 2.0
+ *
+ * A bad ass Net manager that will manage network on client node.
  */
 public class NetManager {
-    // A bad ass Net manager that will do most of the job !
+
+    /**
+     * The connection we are now using
+     */
+
     private FullDuplexMessageWorker full;
+
+    /**
+     * If set a spare connection we can switch to in case of server fault.
+     */
+
     private FullDuplexMessageWorker fullDuplexMessageWorkerSpare;
+
+    /**
+     * A boolean that indicates if a spare connection is set
+     */
+
     private Boolean isSpareSet = false;
+
+    /**
+     * Tells us if the client is performing a spare switching transaction. Used by our spare switching trivial algorithm.
+     */
+
     private Boolean isInSpareTansaction = false;
+
+    /**
+     * Tells us if the login allocation is made
+     */
+
     private Boolean hasCompletedLogin = false;
+
+    /**
+     * Tells us if we get a response to the login request we made to the server.
+     */
+
     private Boolean hasLoginResponse = false;
-    private InetSocketAddress isa;
-    private Boolean loopCondition;
+
+    /**
+     * Pseudo set for spare connection
+     */
+
     private String sparePseudo = "";
+
+    /**
+     * Tells if te client made a demand of user list.
+     */
+
     private Boolean waitingUserList = false;
+
+    /**
+     * A lock to protect sensible data of concurrent access
+     */
     final ReentrantLock clientStateLock = new ReentrantLock();
 
+    /**
+     *
+     *
+     * @return True if we have a login set
+     */
     public Boolean getHasCompletedLogin() {
         return hasCompletedLogin;
     }
@@ -44,6 +91,12 @@ public class NetManager {
         }
     }
 
+    /**
+     * Basic constructor. It opens a connection to the server.
+     *
+     * @param ipAddress Server hostname
+     * @param port Server listening port
+     */
     public NetManager(String ipAddress, int port) {
         InetAddress add;
         try {
@@ -52,7 +105,7 @@ public class NetManager {
             System.out.println("Unknown host specified as server. Terminating");
             return;
         }
-        isa = new InetSocketAddress(add, port);
+        InetSocketAddress isa = new InetSocketAddress(add, port);
         SocketChannel socketChannel;
         try {
             socketChannel = SocketChannel.open(isa);
@@ -64,10 +117,15 @@ public class NetManager {
         full = new FullDuplexMessageWorker(socketChannel);
     }
 
+    /**
+     * Once ready, call this to launch the network manager. It will wait for server answer.
+     */
+
     public void launch() {
         System.out.println("Listening");
         // And now listen to new messages !
-        loopCondition = true;
+        Boolean loopCondition = true;
+        int nbNullPointerException = 0;
         while (loopCondition) {
             full.readMessage();
             ChatData chdata;
@@ -78,7 +136,10 @@ public class NetManager {
                 chdata = (ChatData) full.getData();
             } catch( NullPointerException nlp ) {
                 System.out.println("Can not read received datas ( Null pointer exception ) ");
-                // TODO Sw here
+                nbNullPointerException++;
+                if( nbNullPointerException> 5) {
+                    return;
+                }
                 switchToSpareConnection();
                 while( isInSpareTansaction ) {
                     try {
@@ -90,7 +151,10 @@ public class NetManager {
                 continue;
             } catch (IOException ioe) {
                 System.out.println("Can not read received datas");
-                // TODO Sw here
+                nbNullPointerException++;
+                if( nbNullPointerException> 5) {
+                    return;
+                }
                 switchToSpareConnection();
                 while( isInSpareTansaction ) {
                     try {
@@ -104,7 +168,7 @@ public class NetManager {
             if (chdata == null) {
                 break;
             }
-            // Now see what the serveur told us :
+            // Now see what the server told us :
             switch (chdata.getType()) {
                 case 0:
                     System.out.println("Why did the server send us a login request ?");
@@ -171,17 +235,37 @@ public class NetManager {
         }
     }
 
+    /**
+     * Called from clavier thread. Ask the server for a new pseudo
+     *
+     * @param newLogin this new pseudo
+     */
+
     public void askNewLogin(String newLogin) {
         sendMessage(new ChatData(0, 0, "", newLogin), "Oh god, we failed sending the pseudo request !");
     }
+
+    /**
+     * Called by clavier thread. It sends a massage to the server.
+     * @param msg Our message
+     * @param pseudo Our pseudo
+     */
 
     public void sendMsg(String msg, String pseudo) {
         sendMessage(new ChatData(0, 2, msg, pseudo), "Oh god, we failed sending our message ! To ");
     }
 
+    /**
+     * Called by the clavier thread. Used to demand to server to close our connection.
+     */
+
     public void disconnect() {
         sendMessage(new ChatData(0, 5, ""), "Oh god, we failed sending the pseudo request !");
     }
+
+    /**
+     * Called by clavier thread. It is used to ask the server to provide us the client list.
+     */
 
     public void askForUserList() {
         clientStateLock.lock();
@@ -191,6 +275,14 @@ public class NetManager {
         sendMessage(new ChatData(0, 7, ""), "Oh god, we failed sending the user list request !");
     }
 
+    /**
+     *
+     * Utility function. It is used to send a packet to the server
+     *
+     * @param chatData Data to send
+     * @param ioErrorMessage Error in case of IO error
+     */
+
     private void sendMessage(ChatData chatData, String ioErrorMessage) {
         try {
             full.sendMsg(0, chatData);
@@ -199,9 +291,23 @@ public class NetManager {
         }
     }
 
+    /**
+     * Returns us if spare connection is set.
+     *
+     * @return True if a spare connection is set, and false in other cases
+     */
+
     public Boolean getIsSpareSet() {
         return isSpareSet;
     }
+
+    /**
+     * This method can be called to set a spare connection with a server.
+     *
+     * @param ip Server IP
+     * @param _port Server port
+     * @param _pseudo Our pseudo.
+     */
 
     public void establishSpareConnection(String ip, int _port, String _pseudo) {
         InetAddress add;
@@ -229,6 +335,10 @@ public class NetManager {
         isSpareSet = true;
         sparePseudo = _pseudo;
     }
+
+    /**
+     * Switch our main connection to spare connection.
+     */
 
     public void switchToSpareConnection() {
         if( isSpareSet) {
@@ -262,11 +372,23 @@ public class NetManager {
         }
     }
 
+    /**
+     * Called by clavier thread. Sends a private message
+     *
+     * @param pseudo Your pseudo
+     * @param dest Pseudo you want to send a message to
+     * @param message Message you want to send
+     */
+
     public void sendPrivateMessage( String pseudo, String dest, String message) {
         ChatData chatData = new ChatData(0,12,message,pseudo);
         chatData.pseudoDestination = dest;
         sendMessage(chatData, "Error sending private message ! ");
     }
+
+    /**
+     * Called by clavier thread. Ask our server for the list of servers
+     */
 
     public void askForServerList() {
         sendMessage(new ChatData(0,13,""),"Error requesting server list ");

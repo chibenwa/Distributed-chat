@@ -7,6 +7,8 @@ import Chat.Clavier.ServerClavierThread;
  * Created by benwa on 6/7/14.
  *
  * License : GLP 2.0
+ *
+ * Main class for server.
  */
 public class Main {
     public static void main(String[] argv) {
@@ -25,8 +27,10 @@ public class Main {
 /*
     I put here my roadMap :
 
-    // TODO 4 : Echo to retrieve trivially client list
     // TODO 7 : Causal diffusion for chat messages
-    // TODO 8 : P2P chat from combining both server and client
+    // TODO : Improve fault detection on both server and client
+    // TODO : make server monitor clients ( 10 s schould be enough )
+    // TODO : Release memory in EchoManager
+    // TODO : Secure type casting of thing received from the network...)
 
  */

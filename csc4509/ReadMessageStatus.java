@@ -8,5 +8,5 @@ public enum ReadMessageStatus {
     ReadHeaderCompleted ,
     ReadDataStarted ,
     ReadDataCompleted ,
-    ChannelClosed;
+    ChannelClosed
 }

@@ -8,6 +8,8 @@ import java.util.Scanner;
  * Created by benwa on 6/9/14.
  *
  * License : GLP 2.0
+ *
+ * Main class to launch a P2P Chat client.
  */
 
 public class Main {
@@ -16,8 +18,8 @@ public class Main {
         System.out.print("Choose your port : ");
         int port = scanner.nextInt();
         Chat.Server.NetManager serverNetMngr = new Chat.Server.NetManager( port );
-        //TODO here launch server in the thread
         ServerThread serverThread = new ServerThread(serverNetMngr);
+        // Launches server network listener
         serverThread.start();
         Chat.Client.NetManager clientNetMngr = new Chat.Client.NetManager("127.0.0.1", port);
         // Here we launch the clavier thread

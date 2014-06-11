@@ -36,12 +36,21 @@ public class State {
      */
     private  List<ConnectionStruct> serverStrs;
     /**
-     * A value to know 
+     * A value to know if the server runs in stand alone mode or if it is in connected mode ( to other servers )
      */
     private Boolean standAlone = true;
+    /**
+     * The list of used pseudo across our network
+     */
     private HashMap<String,Boolean> pseudoList;
+    /**
+     * The list of connected servers ( on our network )
+     */
     private ArrayList<SocketAddress> serverConnectedOnOurNetwork;
 
+    /**
+     * Basic constructor
+     */
     public State() {
         cliStrs = new ArrayList<ClientStruct>();
         serverStrs = new ArrayList<ConnectionStruct>();
@@ -57,7 +66,7 @@ public class State {
      *    - Display it on clavier demand ( it will stay for debug purpose )
      *    - Answer client to this question : who is connected directly to this server
      *
-     * @return
+     * @return String with all directly connected pseudos
      */
 
     public String buildClientList() {
@@ -81,10 +90,10 @@ public class State {
      * Another utility function,
      * which will send a message
      * to all clients connected
-     * and registrated to our
+     * and registered to our
      * server.
      *
-     * @param mes
+     * @param mes message to broadcast
      */
 
 
@@ -106,8 +115,8 @@ public class State {
      Tells us if we already
      registered the given
      connection as a server
-     * @param fdmw
-     * @return
+     * @param fdmw The tested connection
+     * @return True if the connection is already established, false in other cases
      */
 
     public Boolean isServerConnectionEstablished( FullDuplexMessageWorker fdmw ) {
@@ -125,9 +134,9 @@ public class State {
 
     /**
      *
-     * We add a server Struct which reprensent a server connection to our list of connected servers
+     * We add a server Struct which represent a server connection to our list of connected servers
      *
-     * @param cliStr
+     * @param cliStr Server connection structure to add to our list of connected servers
      */
 
     public void addServer(ClientStruct cliStr){
@@ -137,13 +146,14 @@ public class State {
         serverLock.unlock();
     }
 
-
-        /*
-        Utility function...
-
-        It is providing us our the
-        connected list of servers
-        recognised as servers
+    /**
+     * Utility function...
+     *
+     * It is providing us our the
+     * connected list of servers
+     * recognised as servers
+     *
+     * @return connected list of servers recognised as servers
      */
 
     public String getServerList() {
@@ -167,16 +177,16 @@ public class State {
         return res;
     }
 
-    /*
-        It closed all the connections registered
-        as both clients and servers. It give us
-        a new clean debug environment without
-        launching each servers a new time (
-        quite long with compilation )
-
-        Useless in production environments but
-        so useful while testing distributed algorithms
-    */
+    /**
+     * It closed all the connections registered
+     * as both clients and servers. It give us
+     * a new clean debug environment without
+     * launching each servers a new time (
+     * quite long with compilation )
+     *
+     * Useless in production environments but
+     * so useful while testing distributed algorithms
+     */
 
     public void reInitNetwork() {
         clientLock.lock();
@@ -202,8 +212,12 @@ public class State {
         serverLock.unlock();
     }
 
-    /*
-    Check if a pseudo is available...
+    /**
+     *
+     * Check if a pseudo is available... ( Locally )
+     *
+     * @param pseudo pseudo to check
+     * @return true if a client with this pseudo is directly connected
      */
 
     public Boolean isPseudoTaken(String pseudo) {
@@ -218,17 +232,35 @@ public class State {
         return alredyExist;
     }
 
+    /**
+     * Add a client Connection structure to our list of connected clients
+     *
+     * @param cliStr client Connection structure to add
+     */
+
     public void addClient(ClientStruct cliStr) {
         clientLock.lock();
         cliStrs.add(cliStr);
         clientLock.unlock();
     }
 
+    /**
+     * Remove a connected client from directly connected clients list
+     *
+     * @param cliStr connected client to remove
+     */
+
     public void removeClient(ClientStruct cliStr) {
         clientLock.lock();
         cliStrs.remove(cliStr);
         clientLock.unlock();
     }
+
+    /**
+     * Remove a connected server from directly connected servers list
+     *
+     * @param toRemove connected server to remove
+     */
 
     public void removeServer(ClientStruct toRemove) {
         serverLock.lock();
@@ -239,11 +271,26 @@ public class State {
         serverLock.unlock();
     }
 
+    /**
+     * We get the number of directly connected servers
+     *
+     * @return the number of directly connected servers
+     */
+
     public int getNbConnectedServers() {
         return serverStrs.size();
     }
 
+    /**
+     *
+     * We broadcast the given broadcast election token to all the directly connected servers
+     *
+     * @param electionToken Election token to broadcast
+     * @param ioErrorMessage Server to display on error
+     */
+
     public void broadcastToken( ElectionToken electionToken, String ioErrorMessage) {
+        serverLock.lock();
         // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
         for( ConnectionStruct connectionStruct : serverStrs) {
             try {
@@ -252,7 +299,16 @@ public class State {
                 System.out.println(ioErrorMessage);
             }
         }
+        serverLock.unlock();
     }
+
+    /**
+     *
+     * Same thing than above ( broadcastToken ) but we do not send it to father
+     *
+     * @param father ignored
+     * @param newToken Election token to broadcast
+     */
 
     public void broadcastTokenWithoutFather(ClientStruct father, ElectionToken newToken) {
         // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
@@ -267,6 +323,13 @@ public class State {
         }
     }
 
+    /**
+     * Same utility than above, but for a InterserverMessage
+     *
+     * @param father ignored
+     * @param newToken InterServerMessage to broadcast
+     */
+
     public void broadcastTokenWithoutFather(ClientStruct father, InterServerMessage newToken) {
         // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
         for( ConnectionStruct connectionStruct : serverStrs) {
@@ -280,6 +343,12 @@ public class State {
         }
     }
 
+    /**
+     * We broadcast the interserver message to all directly connected servers.
+     *
+     * @param mes InterServerMessage to broadcast
+     */
+
     public void broadcastInterServerMessage( InterServerMessage mes) {
         for( ConnectionStruct connectionStruct : serverStrs) {
             try {
@@ -290,9 +359,23 @@ public class State {
         }
     }
 
+    /**
+     * Accessor for standAlone
+     *
+     * @return True if the server is standalone, false in other cases
+     */
+
     public Boolean getStandAlone() {
         return standAlone;
     }
+
+    /**
+     *
+     * We do the difference between both pseudo lists, to know how to send join and leave notifications,
+     * and then we set the list of pseudos available on our network.
+     *
+     * @param _pseudoList The pseudo list we want to replace connected pseudo on our network with
+     */
 
     public void setPseudoList( ArrayList<Serializable> _pseudoList) {
         ArrayList<String> toNotifyDisconnection = new ArrayList<String>();
@@ -321,10 +404,13 @@ public class State {
         for(String string : toNotifyDisconnection) {
             pseudoList.remove(string);
         }
-        // Bouilla
     }
 
-    void switchToStandAlone() {
+    /**
+     * This method make the state come back to a standalone mode
+     */
+
+    public void switchToStandAlone() {
         ArrayList<Serializable> localClientsPseudo = new ArrayList<Serializable>();
         for(ClientStruct clientStruct : cliStrs) {
             localClientsPseudo.add(clientStruct.getPseudo());
@@ -333,6 +419,14 @@ public class State {
         serverConnectedOnOurNetwork.clear();
         standAlone = true;
     }
+
+    /**
+     * Tell us if the value of the String entry is contained in the array of Serializable
+     *
+     * @param list List that can contain the entity
+     * @param entry Entry to check
+     * @return True if found, else in other cases
+     */
 
     private Boolean foundEntry(ArrayList<Serializable> list, String entry) {
         for(Serializable serializable : list) {
@@ -343,20 +437,32 @@ public class State {
         return false;
     }
 
-
-   /* public void addPseudoList( ArrayList<Serializable> _pseudoList) {
-        for( Serializable pseudo : _pseudoList) {
-            pseudoList.put((String)pseudo, true);
-        }
-    }*/
+    /**
+     * Add the given pseudo to the list of pseudo connected to our network
+     *
+     * @param newPseudo pseudo to add
+     */
 
     public void addPseudo( String newPseudo){
             pseudoList.put(newPseudo, true);
     }
 
+    /**
+     * Remove he given pseudo to the list of pseudo connected to our network
+     *
+     * @param pseudo to remove
+     */
+
     public void removePseudo( String pseudo ) {
         pseudoList.remove( pseudo );
     }
+
+    /**
+     * Tells us if the pseudo is used on our network
+     *
+     * @param pseudo Pseudo to test
+     * @return True if the pseudo is used, false in other cases
+     */
 
     public Boolean isPseudoUsed(String pseudo) {
         Boolean res = pseudoList.get(pseudo);
@@ -365,6 +471,10 @@ public class State {
         }
         return res;
     }
+
+    /**
+     * @return The string that contains all the clients' pseudo that are connected on our network
+     */
 
     public String getClientsString() {
         String res = "";
@@ -382,6 +492,16 @@ public class State {
         return res;
     }
 
+    /**
+     *
+     * Get the connection structure with the given pseudo.
+     *
+     * It is used for private message delivery
+     *
+     * @param pseudo The given pseudo
+     * @return The connection structure that holds this pseudo
+     */
+
     public ClientStruct getClientByPseudo(String pseudo ) {
         for( ClientStruct clientStruct : cliStrs) {
             if( clientStruct.getPseudo().compareTo(pseudo) == 0 ) {
@@ -391,12 +511,24 @@ public class State {
         return null;
     }
 
+    /**
+     * We reset the list of servers connected on our network.
+     *
+     * @param input The new list of connected servers.
+     */
+
     public void setServerConnectedOnOurNetwork( ArrayList<Serializable> input) {
         serverConnectedOnOurNetwork.clear();
         for(Serializable serializable : input) {
             serverConnectedOnOurNetwork.add( (SocketAddress) serializable);
         }
     }
+
+    /**
+     * Add a server to the list of servers that are connected on our network.
+     *
+     * @param socketAddress Server id to add
+     */
 
     public void addServerConnectedOnOurNetwork( SocketAddress socketAddress) {
         for( SocketAddress address : serverConnectedOnOurNetwork) {
@@ -407,13 +539,25 @@ public class State {
         serverConnectedOnOurNetwork.add(socketAddress);
     }
 
+    /**
+     * Give us the list of servers connected on our network
+     *
+     * @return The list of servers that are connected on our network
+     */
+
     public ArrayList<Serializable> getServerConnectedOnOurNetwork() {
         ArrayList<Serializable> res = new ArrayList<Serializable>();
         for( SocketAddress address : serverConnectedOnOurNetwork) {
-            res.add( (Serializable) address);
+            res.add( address);
         }
         return res;
     }
+
+    /**
+     * Get the string that contains all servers ids that are connected on our network. Used to be display or send to clients
+     *
+     * @return the string that contains all servers ids that are connected on our network
+     */
 
     public String getServerConnectedOnOurNetworkString() {
         String res = "";
@@ -429,10 +573,18 @@ public class State {
         return res;
     }
 
+    /**
+     * Get the list of directly connected clients.
+     *
+     * It is used to obtain node specific data on a pseudo request broadcast.
+     *
+     * @return Returns the list of directly connected clients.
+     */
+
     public ArrayList<Serializable> getConnectedClients() {
         ArrayList<Serializable> res = new ArrayList<Serializable>();
         for(ClientStruct clientStruct : cliStrs) {
-            res.add( (Serializable) clientStruct.getPseudo());
+            res.add( clientStruct.getPseudo());
         }
         return res;
     }
