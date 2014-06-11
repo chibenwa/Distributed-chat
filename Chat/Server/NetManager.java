@@ -298,7 +298,10 @@ public class NetManager {
             clientStruct.getFullDuplexMessageWorker().sendMsg(2, mes);
         } catch (IOException ioe) {
             System.out.println(ioErrorMessage);
-            ioe.printStackTrace();
+            manageIOErrorOnServerConnection(clientStruct);
+        } catch (NullPointerException npe) {
+            System.out.println(ioErrorMessage);
+            manageIOErrorOnServerConnection(clientStruct);
         }
     }
 
@@ -540,14 +543,12 @@ public class NetManager {
             incomingMessage = (InterServerMessage) fdmw.getData();
         } catch( IOException ioe) {
             System.out.println("Can not retrieve InterServerMessage we are receiving");
-            if( state.isServerConnectionEstablished(fdmw) ) {
-                // We remove the failed server from our connections.
-                state.removeServer(cliStr);
-                // In doubt launch an election ... If the removed server is either elected nor separating us from elected server.
-                if( ! state.getStandAlone() ) {
-                    electionHandler.launchElection();
-                }
-            }
+            manageIOErrorOnServerConnection(cliStr);
+            return;
+        }
+        catch (NullPointerException npe) {
+            System.out.println("Can not retrieve InterServerMessage we are receiving 2");
+            manageIOErrorOnServerConnection(cliStr);
             return;
         }
         // And here come a big switch
@@ -923,7 +924,31 @@ public class NetManager {
             connectionStruct.getFullDuplexMessageWorker().sendMsg(1,electionToken);
         } catch(IOException ioe) {
             System.out.println(ioErrorMessage);
-            // TODO Manage server error
+        }
+    }
+
+    /**
+     * Manage IOError on server connection
+     *
+     * On 5 errors, disconnect server and send and launch an election as topology changed
+     */
+
+    protected void manageIOErrorOnServerConnection(ClientStruct clientStruct) {
+        if( clientStruct.addIOError() ) {
+            System.out.println("Hello pussy");
+            // We remove the failed server from our connections.
+            state.removeServer(clientStruct);
+            // In doubt launch an election ... If the removed server is either elected nor separating us from elected server.
+            if( ! state.getStandAlone() ) {
+                electionHandler.launchElection();
+            } else {
+                System.out.println("Switching standalone");
+                state.switchToStandAlone();
+                if( state.getStandAlone() ) {
+                    System.out.println("Seul et célibataire !");
+                }
+            }
+            closeSocket(clientStruct.getFullDuplexMessageWorker());
         }
     }
 

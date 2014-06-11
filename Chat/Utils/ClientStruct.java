@@ -82,7 +82,9 @@ public class ClientStruct {
      * @return True if we need to close the connection, false if it can still wait.
      */
     public Boolean addIOError() {
-        if( nbIOError++ > 5) {
+        nbIOError++;
+        if( nbIOError > 0) {
+            // Just change this value to be less mean
             return true;
         }
         return false;

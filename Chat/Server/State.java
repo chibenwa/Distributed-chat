@@ -261,7 +261,7 @@ public class State {
     public void removeServer(ClientStruct toRemove) {
         serverLock.lock();
         serverStrs.remove(toRemove);
-        if( cliStrs.size() ==  0 ) {
+        if( serverStrs.size() ==  0 ) {
             standAlone = true;
         }
         serverLock.unlock();
