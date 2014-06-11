@@ -20,34 +20,64 @@ import java.util.concurrent.locks.ReentrantLock;
  * Created by benwa on 6/7/14.
  *
  * License : GLP 2.0
+ *
+ * A bad ass Net manager that will manage network on server node.
  */
 public class NetManager {
 
     // Things initialized in a mono threaded environment and then only read.
+    /**
+     * Server listening port
+     */
     private int port;
+    /**
+     * ServerSocketChannel we are accepting connections on.
+     */
     private ServerSocketChannel ssc;
+    /**
+     * Server's identifier. Unique across network.
+     */
     private SocketAddress p;
 
-
     // Thread safe
+    /**
+     * Election handler that manages elections
+     */
     private ElectionHandler electionHandler;
+    /**
+     * Reliable broadcast manager...
+     */
     private RBroadcastManager rBroadcastManager;
+    /**
+     * An attribute that will be used to retrieve server list across the network
+     */
     private EchoServerListManager echoServerListManager;
+    /**
+     * An attribute that will be used to retrieve connected pseudo list across the network
+     */
     private EchoPseudoListManager echoPseudoListManager;
+    /**
+     * A lock to protect our use of the selector.
+     */
     final ReentrantLock selectorLock = new ReentrantLock();
+    /**
+     * The selector we will use for async read and open.
+     */
     private Selector selector;
 
-    // Things that have to be protected more efficiently are in a separated class
+    /**
+     * Other data that give us the server state...
+     */
     private State state;
 
 
-    /*
-    Initialisation of Chatserver.
-
-    Only register the port number,
-    Initialize some data structures,
-    But network registration
-    and async loop will be performed later
+    /**
+     * Initialisation of the Network manager.
+     *
+     * Only register the port number, Initialize some data structures.
+     * But network registration and async loop will be performed later
+     *
+     * @param _port The port we will later launch the server on.
      */
 
     public NetManager(int _port) {
@@ -59,16 +89,10 @@ public class NetManager {
         echoPseudoListManager = new EchoPseudoListManager(this);
     }
 
-
-
-    /*
-        This Method makes our server
-        listening the whole internet
-        on the given port port.
-        It also intialize some basic
-        stuff for async IO.
-        Then it launches the async loop
-        this thread will be caught on
+    /**
+     * This Method makes our server listening the whole internet on the given port port.
+     * It also initialize some basic stuff for async IO.
+     * Then it launches the async loop this thread will be caught on.
      */
 
     public void launch() {
@@ -77,13 +101,9 @@ public class NetManager {
         asyncLoop();
     }
 
-
-
-    /*
-        We make here our server listening
-        the internet .
-        We also take time to register the
-        election token.
+    /**
+     * We make here our server listening the internet .
+     * We also take time to register the election token.
      */
 
     protected void launchServer() {
@@ -105,20 +125,16 @@ public class NetManager {
         }
     }
 
-
-    /*
-        The loop our main thread will be caught in.
-
-        It accepts connections, and manages read.
-        It dispatches read, thanks to the
-        FullMessageWorkersType between these categories :
-
-            - Message from client
-            - Message related to an election
-            - Other message transiting between two servers
-
-        Note : We need to do this dispatch, as we need
-        to cast the right object
+    /**
+     *     The loop our main thread will be caught in.
+     *
+     * It accepts connections, and manages read.
+     * It dispatches read, thanks to the FullMessageWorkersType between these categories :
+     *        - Message from client
+     *        - Message related to an election
+     *        - Other message transiting between two servers
+     *
+     * Note : We need to do this dispatch, as we need to cast the right object
      */
 
     protected void asyncLoop() {
@@ -180,10 +196,8 @@ public class NetManager {
         }
     }
 
-
-    /*
-        Basic stuff with Selector
-        initialisation.
+    /**
+     *     Basic stuff with Selector initialisation.
      */
 
     private void selectorInit() {
@@ -202,14 +216,13 @@ public class NetManager {
         }
     }
 
-
-    /*
-    This method is only called
-    buy the clavier thread.
-
-    It establish a connection
-    with another server and
-    notifies it we are a server.
+    /**
+     * This method is only called buy the clavier thread.
+     *
+     * It establish a connection with another server and notifies it we are a server.
+     *
+     * @param ipString Hostname to connect to
+     * @param _port  Listening port to connect to
      */
 
     public void connectServer( String ipString, int _port) {
@@ -246,41 +259,12 @@ public class NetManager {
         sendInterServerMessage(fullDuplexMessageWorker, new InterServerMessage(0,0), "Can not send a basic Hello I am a server ! " );
     }
 
-    /*
-        Utility function. Called twice.
-
-        It is here both for code reuse
-        and readability.
-
-        It simply add the given connection
-        to our connected server pool if
-        it not there yet. In other cases,
-        it sends an error.
-     */
-
-    private Boolean handleServerConnectionRequest(ClientStruct cliStr) {
-        Boolean res = state.isServerConnectionEstablished(cliStr.getFullDuplexMessageWorker());
-        if( res ) {
-            System.out.println("Connection already established. Sending error.");
-            // Send error
-            sendServerError(cliStr.getFullDuplexMessageWorker(), 1, "Error while sending error for a double established server connection warning 1");
-        } else {
-            state.addServer(cliStr);
-        }
-        return res;
-    }
-
-
-    /*
-    The five following methods are
-    always called. They were written
-    to improve readability by removing
-    exception handling of the logic,
-    but keep a strong error management
-    ( which is quitte helpful with
-    things as tricky as networking
-    using hand made protocols with
-    hand made parsers ).
+    /**
+     * Send a message with this an error code set, displaying a message on io failure
+     *
+     * @param cliStr Client to send data to
+     * @param errorCode Error code you want to send
+     * @param ioErrorMessage Message to display on io error while sending it
      */
 
     private void sendClientError( ClientStruct cliStr, int errorCode, String ioErrorMessage) {
@@ -288,6 +272,14 @@ public class NetManager {
         chdata.setErrorCode(errorCode);
         sendClientMessage(cliStr.getFullDuplexMessageWorker(), chdata, ioErrorMessage);
     }
+
+    /**
+     * Send an error message to a server
+     *
+     * @param full FullDuplexMessageWorker we will send the error on
+     * @param errorCode Error code you want to send
+     * @param ioErrorMessage Message to display on io error while sending it
+     */
 
     private void sendServerError( FullDuplexMessageWorker full, int errorCode, String ioErrorMessage) {
         InterServerMessage ism = new InterServerMessage(0,42);
@@ -315,6 +307,13 @@ public class NetManager {
         }
     }
 
+    /**
+     * Build the FullDuplexMessageWorker, configure the channel as non blocking, then register the channel.
+     *
+     * @param chan The channel we want to register.
+     * @return The FullDuplexMessageWorker we will use to speak across the channel we just registered
+     */
+
     private FullDuplexMessageWorker makeRegistration(SocketChannel chan) {
         FullDuplexMessageWorker fullDuplexMessageWorker = new FullDuplexMessageWorker(chan);
         ClientStruct str = new ClientStruct(fullDuplexMessageWorker);
@@ -340,15 +339,10 @@ public class NetManager {
         return fullDuplexMessageWorker;
     }
 
-    /*
-        It closed all the connections registered
-        as both clients and servers. It give us
-        a new clean debug environment without
-        launching each servers a new time (
-        quite long with compilation )
-
-        Useless in production environments but
-        so useful while testing distributed algorithms
+    /**
+     * It closed all the connections registered as both clients and servers.
+     * It give us a new clean debug environment without launching each servers a new time ( quite long with compilation )
+     * Useless in production environments but so useful while testing distributed algorithms
     */
 
     public void reInitNetwork() {
@@ -356,12 +350,11 @@ public class NetManager {
     }
 
 
-    /*
-        A quite verbose method that analyses
-        clients messages and took appropriate decisions.
-
-        It part of the async loop, but
-        separated for readability.
+    /**
+     *     A quite verbose method that analyses clients messages and took appropriate decisions.
+     *    It part of the async loop, but separated for readability.
+     *
+     *    @param cliStr Client connection structure we will read data on
      */
 
     private  void handleClientMessage(ClientStruct cliStr) {
@@ -540,12 +533,11 @@ public class NetManager {
     }
 
 
-    /*
-        A quite verbose method that analyses
-        servers messages and took appropriate decisions.
-
-        It part of the async loop, but
-        separated for readability.
+    /**
+     * A quite verbose method that analyses servers messages and took appropriate decisions.
+     * It part of the async loop, but separated for readability.
+     *
+     * @param cliStr The server connection structure we will read data on
      */
 
     private void manageServersMessages(ClientStruct cliStr) {
@@ -646,7 +638,7 @@ public class NetManager {
                 if( res != null ) {
                     System.out.println(" ############################################# ");
                     for (Serializable serializable : res) {
-                        System.out.println(( (SocketAddress) serializable).toString());
+                        System.out.println(( serializable).toString());
                     }
                     System.out.println(" ############################################# ");
                     state.setServerConnectedOnOurNetwork(res);
@@ -768,12 +760,6 @@ public class NetManager {
         chatMessage.pseudo = pseudo;
         chatMessage.message = messageContent;
         message.setMessage(chatMessage);
-        rBroadcastManager.launchRBroadcast(message);
-    }
-
-    public void sendRServerJoin(SocketAddress socketAddress) {
-        InterServerMessage message = new InterServerMessage(0, 3, 4);
-        message.setMessage( socketAddress );
         rBroadcastManager.launchRBroadcast(message);
     }
 
