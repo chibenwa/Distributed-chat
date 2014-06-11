@@ -1,5 +1,11 @@
 # Collection de données via Echo
 
+## Pourquoi cet algorithme
+
+Lors d'un ajout de serveur à notre réseau, nous prenons le risque de connecter deux réseaux entre eux. Si tel est le cas, il nous faut un moyen pour retrouver la liste des pseudos des personnes connectées, ainsi que la liste des serveurs connectés.
+
+D'où le besoin de cet algorithme.
+
 ## principe
 
 Le concept est qu'on va effectuer un écho pour collecter des données sur chacun des noeuds.
@@ -96,6 +102,15 @@ Nous avons noeuds :
 1 reçoit [w,x,y,z] en provenance de 2 et 4
 
 1 a maintenant connaissance des données du réseau. Il peut maintenant les diffuser aux autres noeuds.
+
+## Complexité :
+
+En O( N² ) où N est le nombre de serveurs.
+
+## Preuve :
+
+On a trivialement ( grâce au broadcast ) que chaque serveur reçoit le message. Il renverra donc l'information qu'il porte à son parent, qui le transmettra alors à son parent, et ainsi de suite.
+Le noeud initiateur reçoit donc bien les données de tous les noeuds, ce qui est le but souhaité.
 
 ## Notes :
 
