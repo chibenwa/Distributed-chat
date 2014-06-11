@@ -11,6 +11,10 @@ import csc4509.FullDuplexMessageWorker;
  */
 public class ClientStruct {
     /**
+     * Number of IOerror we faced on this connection since the last time it worked.
+     */
+    private int nbIOError = 0;
+    /**
      * FullDuplexMessageWorker you have to use to speak to this client
      */
     private FullDuplexMessageWorker full;
@@ -67,5 +71,20 @@ public class ClientStruct {
      */
     public FullDuplexMessageWorker getFullDuplexMessageWorker() {
         return full;
+    }
+
+    public void resetIoError() {
+        nbIOError = 0;
+    }
+
+    /**
+     * To be called on IO error. Increment io error number
+     * @return True if we need to close the connection, false if it can still wait.
+     */
+    public Boolean addIOError() {
+        if( nbIOError++ > 5) {
+            return true;
+        }
+        return false;
     }
 }

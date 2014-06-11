@@ -3,7 +3,6 @@ package Chat.Server;
 import Chat.Netmessage.InterServerMessage;
 import Chat.Utils.ClientStruct;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.net.SocketAddress;
 import java.util.ArrayList;
@@ -27,7 +26,7 @@ public class EchoManager {
     /**
      * A hash map that holds data we collected for each wave
      */
-    private HashMap<SocketAddress, HashMap< Integer, ArrayList<Serializable> > > datasCollected;
+    private HashMap<SocketAddress, HashMap< Integer, ArrayList<Serializable> > > dataCollected;
     /**
      * Number of messages we received for each wave
      */
@@ -63,7 +62,7 @@ public class EchoManager {
      */
     public EchoManager( NetManager _netManager) {
         netManager = _netManager;
-        datasCollected = new HashMap<SocketAddress, HashMap<Integer, ArrayList<Serializable>>>();
+        dataCollected = new HashMap<SocketAddress, HashMap<Integer, ArrayList<Serializable>>>();
         messageCount = new HashMap<SocketAddress, HashMap<Integer, Integer>>();
         fathers = new HashMap<SocketAddress, HashMap<Integer, ClientStruct>>();
     }
@@ -79,14 +78,14 @@ public class EchoManager {
     public ArrayList<Serializable> processInput(InterServerMessage message, ClientStruct father) {
         SocketAddress identifier = message.getIdentifier();
         int nbEcho = message.getSeq();
-        if( datasCollected.get(identifier) == null ) {
+        if( dataCollected.get(identifier) == null ) {
             System.out.println("First wave from " + identifier);
             // First echo wave launched by this server
-            datasCollected.put( identifier, new HashMap< Integer, ArrayList<Serializable>>() );
+            dataCollected.put( identifier, new HashMap< Integer, ArrayList<Serializable>>() );
             messageCount.put( identifier, new HashMap<Integer, Integer>());
             fathers.put( identifier, new HashMap<Integer, ClientStruct>());
         }
-        HashMap< Integer, ArrayList<Serializable>> originDatas = datasCollected.get( identifier );
+        HashMap< Integer, ArrayList<Serializable>> originDatas = dataCollected.get( identifier );
         HashMap<Integer, Integer> originMessagesCount = messageCount.get( identifier);
         Boolean firstWaveMessage = false;
         if( originDatas.get(nbEcho) == null ) {
@@ -125,19 +124,17 @@ public class EchoManager {
                 ArrayList<Serializable> result = waveDatas;
                 // Memory cleanup
                 messageCount.get( identifier).remove(nbEcho);
-                datasCollected.get( identifier).remove(nbEcho);
+                dataCollected.get( identifier).remove(nbEcho);
                 return result;
             } else {
                System.out.println("Send result to father ...");
                message.setMessage( waveDatas );
-               try {
-                   fathers.get(identifier).get(nbEcho).getFullDuplexMessageWorker().sendMsg(2, message);
-               } catch( IOException ioe ) {
-                   System.out.println("Failed to send report to father");
-               }
+               netManager.sendInterServerMessage( fathers.get(identifier).get(nbEcho),
+                       message,
+                       "Failed to send info back to father in Echo manager" );
                // Memory cleanup
                messageCount.get( identifier).remove(nbEcho);
-               datasCollected.get( identifier).remove(nbEcho);
+               dataCollected.get( identifier).remove(nbEcho);
             }
         }
         return null;

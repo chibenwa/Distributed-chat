@@ -1,10 +1,7 @@
 package Chat.Server;
 
-import Chat.Netmessage.ChatData;
+import Chat.Netmessage.*;
 
-import Chat.Netmessage.ChatMessage;
-import Chat.Netmessage.InfoForJoiningServer;
-import Chat.Netmessage.InterServerMessage;
 import Chat.Utils.ClientStruct;
 import csc4509.FullDuplexMessageWorker;
 import java.io.IOException;
@@ -82,7 +79,7 @@ public class NetManager {
 
     public NetManager(int _port) {
         port = _port;
-        state = new State();
+        state = new State(this);
         electionHandler = new ElectionHandler(this);
         rBroadcastManager = new RBroadcastManager(this);
         echoServerListManager = new EchoServerListManager(this);
@@ -251,12 +248,12 @@ public class NetManager {
             return;
         }
         System.out.println("Channel opened");
-        FullDuplexMessageWorker fullDuplexMessageWorker = makeRegistration(chan);
-        if( fullDuplexMessageWorker == null ) {
+        ClientStruct clientStruct = makeRegistration(chan);
+        if( clientStruct == null ) {
             return;
         }
         // Now specify to the server that WE ARE A SERVER ...
-        sendInterServerMessage(fullDuplexMessageWorker, new InterServerMessage(0,0), "Can not send a basic Hello I am a server ! " );
+        sendInterServerMessage(clientStruct, new InterServerMessage(0,0), "Can not send a basic Hello I am a server ! " );
     }
 
     /**
@@ -270,36 +267,36 @@ public class NetManager {
     private void sendClientError( ClientStruct cliStr, int errorCode, String ioErrorMessage) {
         ChatData chdata = new ChatData(0, 6, "");
         chdata.setErrorCode(errorCode);
-        sendClientMessage(cliStr.getFullDuplexMessageWorker(), chdata, ioErrorMessage);
+        sendClientMessage(cliStr, chdata, ioErrorMessage);
     }
 
     /**
      * Send an error message to a server
      *
-     * @param full FullDuplexMessageWorker we will send the error on
+     * @param clientStruct Server we will send the error to
      * @param errorCode Error code you want to send
      * @param ioErrorMessage Message to display on io error while sending it
      */
 
-    private void sendServerError( FullDuplexMessageWorker full, int errorCode, String ioErrorMessage) {
+    private void sendServerError( ClientStruct clientStruct, int errorCode, String ioErrorMessage) {
         InterServerMessage ism = new InterServerMessage(0,42);
         ism.setErrorCode(errorCode);
-        sendInterServerMessage(full, ism, ioErrorMessage);
+        sendInterServerMessage(clientStruct, ism, ioErrorMessage);
     }
 
     /**
      * Send a message to an other server.
      *
-     * @param full FullDuplexMessageWorker we will send the message on
+     * @param clientStruct server we will send the error to
      * @param mes Message to send
      * @param ioErrorMessage Message to display on io error while sending it
      */
 
-    private void sendInterServerMessage( FullDuplexMessageWorker full,  InterServerMessage mes, String ioErrorMessage ) {
+    protected void sendInterServerMessage( ClientStruct clientStruct,  InterServerMessage mes, String ioErrorMessage ) {
         mes.setIdentifier(p);
         mes.setElectionWinner( electionHandler.getWin() );
         try {
-            full.sendMsg(2, mes);
+            clientStruct.getFullDuplexMessageWorker().sendMsg(2, mes);
         } catch (IOException ioe) {
             System.out.println(ioErrorMessage);
             ioe.printStackTrace();
@@ -309,17 +306,17 @@ public class NetManager {
     /**
      * Send a message to a client.
      *
-     * @param full FullDuplexMessageWorker we will send the message on
+     * @param clientStruct The client connection structure we will use to send our message
      * @param chatData Message to send
      * @param ioErrorMessage Message to display on io error while sending it
      */
 
-    private void sendClientMessage( FullDuplexMessageWorker full, ChatData chatData, String ioErrorMessage ) {
+    protected void sendClientMessage( ClientStruct clientStruct, ChatData chatData, String ioErrorMessage ) {
         try{
-            full.sendMsg(0,chatData);
+            clientStruct.getFullDuplexMessageWorker().sendMsg(0, chatData);
         } catch( IOException ioe) {
             System.out.println(ioErrorMessage);
-            ioe.printStackTrace();
+            manageIOErrorOnClientConnection( clientStruct);
         }
     }
 
@@ -330,7 +327,7 @@ public class NetManager {
      * @return The FullDuplexMessageWorker we will use to speak across the channel we just registered
      */
 
-    private FullDuplexMessageWorker makeRegistration(SocketChannel chan) {
+    private ClientStruct makeRegistration(SocketChannel chan) {
         FullDuplexMessageWorker fullDuplexMessageWorker = new FullDuplexMessageWorker(chan);
         ClientStruct str = new ClientStruct(fullDuplexMessageWorker);
         try {
@@ -352,7 +349,7 @@ public class NetManager {
         } finally {
             selectorLock.unlock();
         }
-        return fullDuplexMessageWorker;
+        return str;
     }
 
     /**
@@ -382,17 +379,16 @@ public class NetManager {
         } catch (IOException ioe) {
             // We removed the fail client from our pool of clients...
             System.out.println(" Failed to receive message");
-            if( cliStr.hasPseudo() ) {
-                if (state.getStandAlone()) {
-                    // No need to use a complex diffusion algorithm, we are stand alone...
-                    chdata = new ChatData(0, 4, "", cliStr.getPseudo());
-                    state.broadcast(chdata);
-                } else {
-                    sendRClientLeave(cliStr.getPseudo());
-                }
-            }
+            manageIOErrorOnClientConnection( cliStr );
+            return;
+        } catch ( NullPointerException npe) {
+            // We removed the fail client from our pool of clients...
+            System.out.println(" Failed to receive message");
+            manageIOErrorOnClientConnection( cliStr );
             return;
         }
+        // Reset error suite number to 0 as we succeded into obtaining data from this client
+        cliStr.resetIoError();
         // Here we have a message from a client to our server to use the Chat
         switch (rcv.getType()) {
             case 0:
@@ -408,7 +404,7 @@ public class NetManager {
                 if ( ! state.isPseudoUsed(rcv.getPseudo()) ) {
                     System.out.println("Pseudo available");
                     // But first tell the client he was accepted
-                    sendClientMessage(fdmw, new ChatData(0, 1, "", rcv.getPseudo()), " Failed to send ack for a pseudo demand");
+                    sendClientMessage(cliStr, new ChatData(0, 1, "", rcv.getPseudo()), " Failed to send ack for a pseudo demand");
                     // Store the login
                     cliStr.setPseudo(rcv.getPseudo());
                     state.addClient(cliStr);
@@ -460,27 +456,9 @@ public class NetManager {
                 break;
             case 5:
                 //Here we have a deconnection request
-                // Notify every one
                 System.out.println("Deconnection request handled");
-                if (cliStr.hasPseudo()) {
-                    state.removePseudo(cliStr.getPseudo());
-                    if( state.getStandAlone() ) {
-                        // No need to use a complex diffusion algorithm, we are stand alone...
-                        chdata = new ChatData(0, 4, "", cliStr.getPseudo());
-                        state.broadcast(chdata);
-                    } else {
-                        sendRClientLeave(cliStr.getPseudo());
-                    }
-                }
-                // Close socket
-                try {
-                    fdmw.close();
-                } catch (IOException ioe) {
-                    System.out.println(" Failed to close channel");
-                    ioe.printStackTrace();
-                }
-                // Remove the client
-                state.removeClient(cliStr);
+                sendClientLeave(cliStr);
+                closeSocket( fdmw );
                 break;
             case 7:
                 System.out.println("Man, a user list request !");
@@ -489,7 +467,7 @@ public class NetManager {
                     // Ok, we now him, let send it
                     System.out.println("Yes he is authentificated and we can send the user list ( we will really do it ! ) ");
                     chdata = new ChatData(0, 8, state.getClientsString(), cliStr.getPseudo());
-                    sendClientMessage(fdmw, chdata, "Could not send the user list");
+                    sendClientMessage(cliStr, chdata, "Could not send the user list");
                 } else {
                     // Who's that guy? Kick him dude !
                     System.out.println("Non authentificated user can not ask for user list...");
@@ -506,7 +484,7 @@ public class NetManager {
                 // The user want to be set as spare
                 if( state.isPseudoTaken(rcv.getPseudo())) {
                     // The pseudo is taken, we can set spare connection
-                    sendClientMessage(cliStr.getFullDuplexMessageWorker(), new ChatData(0,10,""),"Failed to send Ack for spared connection registring");
+                    sendClientMessage(cliStr, new ChatData(0,10,""),"Failed to send Ack for spared connection registring");
                     cliStr.setPseudo(rcv.getPseudo());
                     System.out.println("Client spare " + rcv.getPseudo() + " registered");
                 }
@@ -518,7 +496,7 @@ public class NetManager {
                     cliStr.setPseudo(rcv.getPseudo());
                 }
                 state.addClient(cliStr);
-                sendClientMessage(cliStr.getFullDuplexMessageWorker(), new ChatData(0,11,""), "Failed to send Ack for spare connection activation");
+                sendClientMessage(cliStr, new ChatData(0,11,""), "Failed to send Ack for spare connection activation");
                 break;
             case 12:
                 // The client send a private message
@@ -526,7 +504,7 @@ public class NetManager {
                 if( state.isPseudoTaken( dest ) ) {
                     chdata = new ChatData(0,12,rcv.getMessage(), rcv.getPseudo());
                     chdata.pseudoDestination = dest;
-                    sendClientMessage(state.getClientByPseudo(dest).getFullDuplexMessageWorker(), chdata, "Failed send private message to client directly connected");
+                    sendClientMessage(state.getClientByPseudo(dest), chdata, "Failed send private message to client directly connected");
                 } else {
                     sendRPrivateMessage(rcv.getMessage(), rcv.getPseudo(), dest);
                 }
@@ -535,7 +513,7 @@ public class NetManager {
                 // Answer from our demand of servers list
                 System.out.println("Demand of list of server");
                 String serverListString = state.getServerConnectedOnOurNetworkString();
-                sendClientMessage(fdmw,new ChatData(0,13,serverListString),"Error sending answer to client");
+                sendClientMessage(cliStr,new ChatData(0,13,serverListString),"Error sending answer to client");
                 break;
             case 42:
                 // The client send us an error
@@ -583,7 +561,7 @@ public class NetManager {
                     electionHandler.unlock();
                     // We are in election, we can not add a server !
                     System.out.println("Server add demand while in election. Sending error");
-                    sendServerError(fdmw,3, "IO ERROR SERVER CODE 3");
+                    sendServerError(cliStr,3, "IO ERROR SERVER CODE 3");
                 } else {
                     electionHandler.unlock();
                     System.out.println("Request for server connection received");
@@ -594,7 +572,7 @@ public class NetManager {
                     InterServerMessage response = new InterServerMessage(0, 1);
                     response.setMessage(infoForJoiningServer);
                     // Then notify the other server that he had been correctly added :-)
-                    sendInterServerMessage(fdmw, response, "Can not send ack for a server connection established");
+                    sendInterServerMessage(cliStr, response, "Can not send ack for a server connection established");
                 }
                 break;
             case 1:
@@ -603,7 +581,7 @@ public class NetManager {
                 if(electionHandler.getIsInElection()) {
                     electionHandler.unlock();
                     System.out.println("Server add reply while in election. Sending error");
-                    sendServerError(fdmw,4, "IO ERROR SERVER CODE 4");
+                    sendServerError(cliStr,4, "IO ERROR SERVER CODE 4");
                 } else {
                     electionHandler.unlock();
                     System.out.println("Our request for opening a new connection to another server was answered");
@@ -760,7 +738,7 @@ public class NetManager {
                 if( state.isPseudoTaken( dest ) ) {
                     ChatData chdata = new ChatData(0,12,chatMessage.message, chatMessage.pseudo);
                     chdata.pseudoDestination = dest;
-                    sendClientMessage(state.getClientByPseudo(dest).getFullDuplexMessageWorker(), chdata, "Failed send private message to client directly connected ( after broadcast ) ");
+                    sendClientMessage(state.getClientByPseudo(dest), chdata, "Failed send private message to client directly connected ( after broadcast ) ");
                 }
                 break;
             case 6:
@@ -882,4 +860,69 @@ public class NetManager {
         rBroadcastManager.launchRBroadcast(message);
     }
 
+    /**
+     * Manage IOError on client connection
+     *
+     * On 5 errors, disconnect client and send a client leave
+     */
+
+    protected void manageIOErrorOnClientConnection(ClientStruct clientStruct) {
+        if( clientStruct.addIOError() ) {
+            sendClientLeave(clientStruct);
+            state.removeClient(clientStruct);
+            closeSocket(clientStruct.getFullDuplexMessageWorker());
+        }
+    }
+
+    /**
+     * Send the appropriate client leave, depending of stand alone mode
+     *
+     * @param cliStr The client structure which client is leaving us.
+     */
+    private void sendClientLeave(ClientStruct cliStr) {
+        if (cliStr.hasPseudo()) {
+            state.removePseudo(cliStr.getPseudo());
+            if( state.getStandAlone() ) {
+                // No need to use a complex diffusion algorithm, we are stand alone...
+                ChatData chdata = new ChatData(0, 4, "", cliStr.getPseudo());
+                state.broadcast(chdata);
+            } else {
+                sendRClientLeave(cliStr.getPseudo());
+            }
+        }
+        // Remove the client
+        state.removeClient(cliStr);
+    }
+
+    /**
+     * Close the socket associated with our FullDuplexMessageWorker
+     *
+     * @param fdmw The FullDuplexMessageWorker we will close
+     */
+
+    private void closeSocket(FullDuplexMessageWorker fdmw) {
+        try {
+            fdmw.close();
+        } catch (IOException ioe) {
+            System.out.println(" Failed to close channel");
+            ioe.printStackTrace();
+        }
+    }
+
+    /**
+     * Convenient methods used in NetManager thread by manageInput to launch an election
+     *
+     * @param connectionStruct Connection structure to send the data to
+     * @param electionToken ElectionToken to broadcast
+     * @param ioErrorMessage Message to display on io error
+     */
+
+    protected void sendElectionToken( ClientStruct connectionStruct, ElectionToken electionToken, String ioErrorMessage ) {
+        try{
+            connectionStruct.getFullDuplexMessageWorker().sendMsg(1,electionToken);
+        } catch(IOException ioe) {
+            System.out.println(ioErrorMessage);
+            // TODO Manage server error
+        }
+    }
 }

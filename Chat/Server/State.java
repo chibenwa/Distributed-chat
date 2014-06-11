@@ -19,11 +19,15 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class State {
     /**
-     * A lock to protect datas about serverss
+     * The network manage we will use to send messages
+     */
+    private NetManager netManager;
+    /**
+     * A lock to protect data about servers
      */
     private final ReentrantLock serverLock = new ReentrantLock();
     /**
-     * A lock to protect datas about clients
+     * A lock to protect data about clients
      */
     private final ReentrantLock clientLock = new ReentrantLock();
     /**
@@ -50,7 +54,8 @@ public class State {
     /**
      * Basic constructor
      */
-    public State() {
+    public State(NetManager _netManager) {
+        netManager = _netManager;
         cliStrs = new ArrayList<ClientStruct>();
         serverStrs = new ArrayList<ClientStruct>();
         pseudoList = new HashMap<String, Boolean>();
@@ -99,11 +104,7 @@ public class State {
     public void broadcast( ChatData mes ) {
         clientLock.lock();
         for ( ClientStruct cls : cliStrs) {
-            try {
-                cls.getFullDuplexMessageWorker().sendMsg(0, mes);
-            } catch( IOException ioe) {
-                System.out.println("Failed to broadcast message");
-            }
+            netManager.sendClientMessage(cls, mes, "Failed to broadcast message");
         }
         clientLock.unlock();
     }
@@ -192,11 +193,7 @@ public class State {
         serverLock.lock();
         // No fear for dead locks as this is the only place were we lock for both clients and servers locks
         for( ClientStruct cstr : serverStrs) {
-            try{
-                cstr.getFullDuplexMessageWorker().sendMsg(2, new InterServerMessage(0,2));
-            } catch(IOException ioe) {
-                System.out.println("Can not send a disconnection demand");
-            }
+            netManager.sendInterServerMessage(cstr, new InterServerMessage(0,2), "Can not send a disconnection demand");
         }
         for( ClientStruct clientStruct : cliStrs) {
             try {
@@ -288,17 +285,11 @@ public class State {
      * @param ioErrorMessage Server to display on error
      */
 
-    public void broadcastToken( ElectionToken electionToken, String ioErrorMessage) {
-        serverLock.lock();
+    protected void broadcastToken( ElectionToken electionToken, String ioErrorMessage) {
         // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
         for( ClientStruct connectionStruct : serverStrs) {
-            try {
-                connectionStruct.getFullDuplexMessageWorker().sendMsg(1, electionToken);
-            } catch (IOException ioe) {
-                System.out.println(ioErrorMessage);
-            }
+            netManager.sendElectionToken(connectionStruct, electionToken, ioErrorMessage );
         }
-        serverLock.unlock();
     }
 
     /**
@@ -309,15 +300,11 @@ public class State {
      * @param newToken Election token to broadcast
      */
 
-    public void broadcastTokenWithoutFather(ClientStruct father, ElectionToken newToken) {
+    protected void broadcastTokenWithoutFather(ClientStruct father, ElectionToken newToken) {
         // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
         for( ClientStruct connectionStruct : serverStrs) {
             if( connectionStruct != father) {
-                try {
-                    connectionStruct.getFullDuplexMessageWorker().sendMsg(1, newToken);
-                } catch (IOException ioe) {
-                    System.out.println("Error while sending the new token");
-                }
+                netManager.sendElectionToken(connectionStruct, newToken, "Error while sending the new token" );
             }
         }
     }
@@ -333,11 +320,7 @@ public class State {
         // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
         for( ClientStruct connectionStruct : serverStrs) {
             if( connectionStruct != father) {
-                try {
-                    connectionStruct.getFullDuplexMessageWorker().sendMsg(2, newToken);
-                } catch (IOException ioe) {
-                    System.out.println("Error while sending the new token");
-                }
+                netManager.sendInterServerMessage(connectionStruct,newToken,"Error while sending the new token");
             }
         }
     }
@@ -350,11 +333,7 @@ public class State {
 
     public void broadcastInterServerMessage( InterServerMessage mes) {
         for( ClientStruct connectionStruct : serverStrs) {
-            try {
-                connectionStruct.getFullDuplexMessageWorker().sendMsg(2, mes);
-            } catch (IOException ioe) {
-                System.out.println("Error while broadcasting server message");
-            }
+            netManager.sendInterServerMessage(connectionStruct, mes, "Error while broadcasting server message");
         }
     }
 

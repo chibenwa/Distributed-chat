@@ -1,7 +1,7 @@
 package Chat.Server;
 
 
-import Chat.Clavier.ServerClavierThread;
+import Chat.Clavier.ServerKeyboardThread;
 
 /**
  * Created by benwa on 6/7/14.
@@ -18,7 +18,7 @@ public class Main {
         }
         int port = Integer.parseInt(argv[0]);
         NetManager netManager = new NetManager(port);
-        ServerClavierThread serverClavierThread = new ServerClavierThread(netManager);
+        ServerKeyboardThread serverClavierThread = new ServerKeyboardThread(netManager);
         serverClavierThread.start();
         netManager.launch();
     }

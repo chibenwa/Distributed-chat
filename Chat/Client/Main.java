@@ -1,7 +1,7 @@
 package Chat.Client;
 
 
-import Chat.Clavier.ClientClavierThread;
+import Chat.Clavier.ClientKeyboardThread;
 
 import java.util.Scanner;
 
@@ -19,7 +19,7 @@ public class Main {
         int port = scanner.nextInt();
         NetManager clientNetMngr = new NetManager(ip, port);
         // Here we launch the clavier thread
-        ClientClavierThread clientClavierThread = new ClientClavierThread(clientNetMngr);
+        ClientKeyboardThread clientClavierThread = new ClientKeyboardThread(clientNetMngr);
         clientClavierThread.start();
         // And know we start listening
         clientNetMngr.launch();

@@ -1,6 +1,6 @@
 package Chat.P2P;
 
-import Chat.Clavier.P2PClavierThread;
+import Chat.Clavier.P2PKeyboardThread;
 
 import java.util.Scanner;
 
@@ -23,7 +23,7 @@ public class Main {
         serverThread.start();
         Chat.Client.NetManager clientNetMngr = new Chat.Client.NetManager("127.0.0.1", port);
         // Here we launch the clavier thread
-        P2PClavierThread p2pClavierThread = new P2PClavierThread(serverNetMngr, clientNetMngr);
+        P2PKeyboardThread p2pClavierThread = new P2PKeyboardThread(serverNetMngr, clientNetMngr);
         p2pClavierThread.start();
         // And know we start listening
         clientNetMngr.launch();

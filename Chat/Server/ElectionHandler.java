@@ -2,7 +2,6 @@ package Chat.Server;
 
 import Chat.Netmessage.ElectionToken;
 import Chat.Utils.ClientStruct;
-import Chat.Utils.ConnectionStruct;
 import csc4509.FullDuplexMessageWorker;
 import sun.awt.Mutex;
 import java.io.IOException;
@@ -33,7 +32,7 @@ public class ElectionHandler {
     /**
      * The father is a current connection present in serverStr. We use it instead of a Socket address for conviniance ( far much better to send a message )
       */
-    private ConnectionStruct father = null;
+    private ClientStruct father = null;
     /**
      *  Winner have to be compared with caw and p. So that is a SocketAddress.
      */
@@ -240,14 +239,14 @@ public class ElectionHandler {
                             winner.setR(p);
                             netManager.getState().broadcastToken(winner,"Error while broadcasting our victory");
                             // Tasks that must be performed by the winner
-                            netManager.lauchPseudoDiscovery();
+                            netManager.launchPseudoDiscovery();
                             netManager.launchServerDiscovery();
                         } else {
                             System.out.println("Answer dad");
                             // All our neighbours have answered us so we can reply to our father
                             ElectionToken answer = new ElectionToken(0);
                             answer.setR(caw);
-                            sendElectionToken(father,answer, "Answer while returning token to father");
+                            netManager.sendElectionToken(father,answer, "Answer while returning token to father");
                         }
                     }
                 }
@@ -308,21 +307,7 @@ public class ElectionHandler {
         electionMutex.unlock();
     }
 
-    /**
-     * Convenient methods used in NetManager thread by manageInput to launch an election
-     *
-     * @param connectionStruct Connection structure to send the data to
-     * @param electionToken ElectionToken to broadcast
-     * @param ioErrorMessage Message to display on io error
-     */
 
-    private void sendElectionToken( ConnectionStruct connectionStruct, ElectionToken electionToken, String ioErrorMessage ) {
-        try{
-            connectionStruct.getFullDuplexMessageWorker().sendMsg(1,electionToken);
-        } catch(IOException ioe) {
-            System.out.println(ioErrorMessage);
-        }
-    }
 
 
     /**
@@ -332,7 +317,7 @@ public class ElectionHandler {
      *
      * @return Client Connection structure for the father linking us to the elected server.
      */
-    public ConnectionStruct getFather() {
+    public ClientStruct getFather() {
         return father;
     }
 

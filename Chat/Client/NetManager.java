@@ -21,6 +21,12 @@ import java.util.concurrent.locks.ReentrantLock;
 public class NetManager {
 
     /**
+     *  Number of time we can not obtain our content. It means an error.
+     */
+
+    private int nbNullPointerException = 0;
+
+    /**
      * The connection we are now using
      */
 
@@ -125,7 +131,6 @@ public class NetManager {
         System.out.println("Listening");
         // And now listen to new messages !
         Boolean loopCondition = true;
-        int nbNullPointerException = 0;
         while (loopCondition) {
             full.readMessage();
             ChatData chdata;
@@ -136,32 +141,14 @@ public class NetManager {
                 chdata = (ChatData) full.getData();
             } catch( NullPointerException nlp ) {
                 System.out.println("Can not read received datas ( Null pointer exception ) ");
-                nbNullPointerException++;
-                if( nbNullPointerException> 5) {
+                if( manageIOError() ) {
                     return;
-                }
-                switchToSpareConnection();
-                while( isInSpareTansaction ) {
-                    try {
-                        Thread.sleep(1);
-                    } catch (InterruptedException ie) {
-                        System.out.println("Interrupted...");
-                    }
                 }
                 continue;
             } catch (IOException ioe) {
                 System.out.println("Can not read received datas");
-                nbNullPointerException++;
-                if( nbNullPointerException> 5) {
+                if( manageIOError() ) {
                     return;
-                }
-                switchToSpareConnection();
-                while( isInSpareTansaction ) {
-                    try {
-                        Thread.sleep(1);
-                    } catch (InterruptedException ie) {
-                        System.out.println("Interrupted...");
-                    }
                 }
                 continue;
             }
@@ -288,6 +275,7 @@ public class NetManager {
             full.sendMsg(0, chatData);
         } catch (IOException ioe) {
             System.out.println(ioErrorMessage);
+            manageIOError();
         }
     }
 
@@ -348,6 +336,7 @@ public class NetManager {
                 fullDuplexMessageWorkerSpare.sendMsg(0, new ChatData(0, 10, "", sparePseudo));
             } catch (IOException ioe) {
                 System.out.println("Failed to send spare switching demand");
+                return;
             }
             fullDuplexMessageWorkerSpare.readMessage();
             ChatData answer;
@@ -394,4 +383,27 @@ public class NetManager {
         sendMessage(new ChatData(0,13,""),"Error requesting server list ");
     }
 
+    /**
+     * Manage an IO error :
+     * Perform switching if a spare connection is established.
+     * If we have more than 5 error, we shut down our client...
+     *
+     * @return True if we need to shut down the client, false in other cases
+     */
+
+    private Boolean manageIOError() {
+        nbNullPointerException++;
+        if( nbNullPointerException> 5) {
+            return true;
+        }
+        switchToSpareConnection();
+        while( isInSpareTansaction ) {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException ie) {
+                System.out.println("Interrupted...");
+            }
+        }
+        return false;
+    }
 }
