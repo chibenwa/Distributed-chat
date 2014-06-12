@@ -12,11 +12,10 @@ import java.util.HashMap;
  *
  * A basic reliable broadcast manager.
  */
-public class RBroadcastManager {
+public class RBroadcastManager implements BroadcastManager{
     /**
      * A map that store the broadcast identifier for each server, and the received waves for each one of them. The last point is important to release memory...
      */
-   // private HashMap<SocketAddress, ArrayList<Integer> > RMessageReceived;
     private HashMap<SocketAddress, HashMap<Integer,Integer> > RMessageReceived;
     /**
      * The netManager we will use to send messages
@@ -50,7 +49,6 @@ public class RBroadcastManager {
      */
     public Boolean manageInput( InterServerMessage message) {
         SocketAddress identifier = message.getIdentifier();
-        //SocketAddress stock = new InetSocketAddress( identifier );
         int messageSeq = message.getSeq();
         System.out.println("Wave identifier : " + identifier + " " +messageSeq);
         if( ! processMessageIds(identifier, messageSeq)) {
@@ -73,7 +71,6 @@ public class RBroadcastManager {
      */
     private Boolean processMessageIds(SocketAddress identifier, int seq) {
         System.out.println("Processing for " + identifier);
-//        ArrayList<Integer> messageIdentifierIds = RMessageReceived.get(identifier);
         HashMap<Integer, Integer> messageIdentifierIds = RMessageReceived.get(identifier);
         if( messageIdentifierIds == null ) {
             System.out.println("First time this server sends us a RBroadcast message");
@@ -96,15 +93,6 @@ public class RBroadcastManager {
             System.out.println("Process done for " + identifier);
             return false;
         }
-     /*   for( Integer i : messageIdentifierIds) {
-            if( i == seq ) {
-                System.out.println("Process done for " + identifier);
-                return true;
-            }
-        }
-        messageIdentifierIds.add(seq);
-        System.out.println("Process done for " + identifier);
-        return false;*/
     }
 
     /**
@@ -112,14 +100,13 @@ public class RBroadcastManager {
      * @param message The given message
      */
 
-    public void launchRBroadcast(InterServerMessage message) {
+    public void launchBroadcast(InterServerMessage message) {
         // First register our message
         HashMap<Integer, Integer> ourMessages = RMessageReceived.get(ourAddress);
         ourSeq++;
         message.setSeq( ourSeq );
         message.setIdentifier(ourAddress);
         ourMessages.put(message.getSeq(), 0);
-//        ourMessages.add(message.getSeq());
         netManager.getState().broadcastInterServerMessage(message);
         System.out.println("================================ Seding RBO " + ourAddress + " " +ourSeq+ " ==========================");
     }

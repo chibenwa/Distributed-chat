@@ -46,6 +46,10 @@ public class NetManager {
      */
     private RBroadcastManager rBroadcastManager;
     /**
+     * Causal broadcast manager.
+     */
+    private CBroadcastManager cBroadcastManager;
+    /**
      * An attribute that will be used to retrieve server list across the network
      */
     private EchoServerListManager echoServerListManager;
@@ -84,6 +88,7 @@ public class NetManager {
         rBroadcastManager = new RBroadcastManager(this);
         echoServerListManager = new EchoServerListManager(this);
         echoPseudoListManager = new EchoPseudoListManager(this);
+        cBroadcastManager = new CBroadcastManager(rBroadcastManager);
     }
 
     /**
@@ -608,6 +613,16 @@ public class NetManager {
                     manageServerMessageSubtype(incomingMessage);
                 }
                 break;
+            case 5 :
+                // C diffusion
+                System.out.println("C broadcast detected");
+                if( cBroadcastManager.manageInput( incomingMessage) ) {
+                    ArrayList<InterServerMessage> acceptedMessages = cBroadcastManager.getCAcceptedMessages();
+                    for( InterServerMessage acceptedMessage : acceptedMessages) {
+                        manageServerMessageSubtype(acceptedMessage);
+                    }
+                }
+                break;
             case 6 :
                 System.out.println("Working with retrieve clients requests");
                 ArrayList<Serializable> result = echoPseudoListManager.processInput(incomingMessage, cliStr);
@@ -771,7 +786,7 @@ public class NetManager {
     public void sendRClientJoin(String pseudo) {
         InterServerMessage message = new InterServerMessage(0, 3, 1);
         message.setMessage( pseudo );
-        rBroadcastManager.launchRBroadcast(message);
+        rBroadcastManager.launchBroadcast(message);
         state.broadcast(new ChatData(0, 3, "", pseudo));
     }
 
@@ -784,7 +799,7 @@ public class NetManager {
     public void sendRClientLeave(String pseudo) {
         InterServerMessage message = new InterServerMessage(0, 3, 2);
         message.setMessage( pseudo );
-        rBroadcastManager.launchRBroadcast(message);
+        rBroadcastManager.launchBroadcast(message);
         state.broadcast(new ChatData(0, 4, "", pseudo));
     }
 
@@ -801,7 +816,7 @@ public class NetManager {
         chatMessage.pseudo = pseudo;
         chatMessage.message = messageContent;
         message.setMessage(chatMessage);
-        rBroadcastManager.launchRBroadcast(message);
+        rBroadcastManager.launchBroadcast(message);
     }
 
     /**
@@ -819,7 +834,7 @@ public class NetManager {
         chatMessage.message = messageContent;
         chatMessage.dest = dest;
         message.setMessage(chatMessage);
-        rBroadcastManager.launchRBroadcast(message);
+        rBroadcastManager.launchBroadcast(message);
     }
 
     /**
@@ -839,7 +854,7 @@ public class NetManager {
     private void launchRServerSet(ArrayList<Serializable> serverList) {
         InterServerMessage message = new InterServerMessage(0, 3, 6);
         message.setMessage( serverList );
-        rBroadcastManager.launchRBroadcast(message);
+        rBroadcastManager.launchBroadcast(message);
     }
 
     /**
@@ -859,7 +874,7 @@ public class NetManager {
     private void launchRPseudoSet(ArrayList<Serializable> pseudoList) {
         InterServerMessage message = new InterServerMessage(0, 3, 7);
         message.setMessage( pseudoList );
-        rBroadcastManager.launchRBroadcast(message);
+        rBroadcastManager.launchBroadcast(message);
     }
 
     /**

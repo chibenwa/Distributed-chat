@@ -41,6 +41,12 @@ public class InterServerMessage extends NetMessage {
     private SocketAddress electionWinner;
 
     /**
+     * Another Serialized field to carry the dat to hold. It is mainly used by C broadcast message to transmit vectorial clock used by this algorithm
+     * ( so messages used with C Broadcast can not use this field... ).
+     */
+    private Serializable neededData = null;
+
+    /**
      * Constructor
      *
      * @param _seq Sequence number
@@ -186,6 +192,22 @@ public class InterServerMessage extends NetMessage {
 
     public Serializable getMessage() {
         return message;
+    }
+
+    /**
+     * Needed data setter
+     * @param _neededData Needed Data field to set for this message.
+     */
+    public void setNeededData(Serializable _neededData) {
+        neededData = _neededData;
+    }
+
+    /**
+     * Needed data accessor
+     * @return Needed Data field for this message
+     */
+    public Serializable getNeededData() {
+        return neededData;
     }
 
 }

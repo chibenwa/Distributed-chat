@@ -1,7 +1,6 @@
 package Chat.Server;
 
 import java.io.Serializable;
-import java.net.SocketAddress;
 import java.util.ArrayList;
 
 /**
@@ -11,7 +10,7 @@ import java.util.ArrayList;
  *
  * An echo manager that collect connected clients across our network.
  */
-public class EchoPseudoListManager extends EchoManager {
+public class EchoPseudoListManager extends EchoListManager {
 
     /**
      * Basic constructor

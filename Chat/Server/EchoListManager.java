@@ -19,7 +19,7 @@ import java.util.HashMap;
  *
  * As we would collect different data, this class will be overwritten, with minor changes.
  */
-public class EchoManager {
+public class EchoListManager {
     /**
      * The NetManager we will use to send messages
      */
@@ -61,7 +61,7 @@ public class EchoManager {
      *
      * @param _netManager The NetManager we will use to send messages
      */
-    public EchoManager(NetManager _netManager) {
+    public EchoListManager(NetManager _netManager) {
         netManager = _netManager;
         datasCollected = new HashMap<SocketAddress, HashMap<Integer, ArrayList<Serializable>>>();
         messageCount = new HashMap<SocketAddress, HashMap<Integer, Integer>>();

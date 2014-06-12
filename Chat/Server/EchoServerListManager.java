@@ -7,7 +7,7 @@ import java.util.ArrayList;
 /**
  * Created by benwa on 6/9/14.
  */
-public class EchoServerListManager extends EchoManager {
+public class EchoServerListManager extends EchoListManager {
     /**
      * Basic constructor
      * @param netManager The NetManager we will use to send our messages

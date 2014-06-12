@@ -31,3 +31,10 @@ Pour solutionner ce problème, voici la solution que j'ai choisi de mettre en pla
 ## Problèmes liés à cette approche
 
 Nous bloquons notre émission de messages pendant le processus d'élection, et il y a une perte possible de messages en cas de déconnection d'un serveur.
+
+Par ailleur j'ai bien conscience que **c'est une grosse rustine** ... Le bas blesse pour les opérations effectuées pendant ce méchanisme, 
+qui sont potentiellement perdu, ou diffusé dans le mauvais ordre, etc... J'ai bien conscience de ne pas avoir donné une solution au 
+problème que je me suis posé. 
+Je me rend bien compte que ce problème n'a probablement pas de solutions. En revanche, je ne me voyais pas ne pas implémenter un 
+méchanisme pour essayer de faire quelque chose contre ce problème. C'est tout de même mieux que de ne rien faire du tout.
+
