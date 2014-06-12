@@ -28,8 +28,6 @@ public class Main {
     I put here my roadMap :
 
     // TODO 7 : Causal diffusion for chat messages
-    // TODO : Improve fault detection on both server and client
-    // TODO : make server monitor clients ( 10 s schould be enough )
     // TODO : Release memory in EchoManager
     // TODO : Secure type casting of thing received from the network...)
 
