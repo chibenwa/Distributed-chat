@@ -2,9 +2,7 @@ package Chat.Server;
 
 import Chat.Netmessage.InterServerMessage;
 
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -16,9 +14,10 @@ import java.util.HashMap;
  */
 public class RBroadcastManager {
     /**
-     * A map that store the broadcast identifier for each server
+     * A map that store the broadcast identifier for each server, and the received waves for each one of them. The last point is important to release memory...
      */
-    private HashMap<SocketAddress, ArrayList<Integer> > RMessageReceived;
+   // private HashMap<SocketAddress, ArrayList<Integer> > RMessageReceived;
+    private HashMap<SocketAddress, HashMap<Integer,Integer> > RMessageReceived;
     /**
      * The netManager we will use to send messages
      */
@@ -39,7 +38,7 @@ public class RBroadcastManager {
      */
 
     public RBroadcastManager( NetManager _netManager) {
-        RMessageReceived = new HashMap<SocketAddress, ArrayList<Integer> >();
+        RMessageReceived = new HashMap<SocketAddress, HashMap<Integer, Integer>>();
         netManager = _netManager;
     }
 
@@ -74,16 +73,30 @@ public class RBroadcastManager {
      */
     private Boolean processMessageIds(SocketAddress identifier, int seq) {
         System.out.println("Processing for " + identifier);
-        ArrayList<Integer> messageIdentifierIds = RMessageReceived.get(identifier);
+//        ArrayList<Integer> messageIdentifierIds = RMessageReceived.get(identifier);
+        HashMap<Integer, Integer> messageIdentifierIds = RMessageReceived.get(identifier);
         if( messageIdentifierIds == null ) {
             System.out.println("First time this server sends us a RBroadcast message");
-            messageIdentifierIds = new ArrayList<Integer>();
-            messageIdentifierIds.add(seq);
+            messageIdentifierIds = new HashMap<Integer, Integer>();
+            messageIdentifierIds.put(seq,1);
             RMessageReceived.put(identifier, messageIdentifierIds);
             System.out.println("Process done for " + identifier);
             return false;
         }
-        for( Integer i : messageIdentifierIds) {
+        if( messageIdentifierIds.get(seq) != null ) {
+            messageIdentifierIds.put(seq, messageIdentifierIds.get(seq) + 1);
+            if( messageIdentifierIds.get(seq) >= netManager.getState().getNbConnectedServers()) {
+                // Here the wave is ended. We can safely erase data about it, to avoid memory leaks.
+                messageIdentifierIds.remove(seq);
+                System.out.println("Resources cleaned");
+            }
+            return true;
+        } else {
+            messageIdentifierIds.put(seq,1);
+            System.out.println("Process done for " + identifier);
+            return false;
+        }
+     /*   for( Integer i : messageIdentifierIds) {
             if( i == seq ) {
                 System.out.println("Process done for " + identifier);
                 return true;
@@ -91,7 +104,7 @@ public class RBroadcastManager {
         }
         messageIdentifierIds.add(seq);
         System.out.println("Process done for " + identifier);
-        return false;
+        return false;*/
     }
 
     /**
@@ -101,11 +114,12 @@ public class RBroadcastManager {
 
     public void launchRBroadcast(InterServerMessage message) {
         // First register our message
-        ArrayList<Integer> ourMessages = RMessageReceived.get(ourAddress);
+        HashMap<Integer, Integer> ourMessages = RMessageReceived.get(ourAddress);
         ourSeq++;
         message.setSeq( ourSeq );
         message.setIdentifier(ourAddress);
-        ourMessages.add(message.getSeq());
+        ourMessages.put(message.getSeq(), 0);
+//        ourMessages.add(message.getSeq());
         netManager.getState().broadcastInterServerMessage(message);
         System.out.println("================================ Seding RBO " + ourAddress + " " +ourSeq+ " ==========================");
     }
@@ -118,7 +132,7 @@ public class RBroadcastManager {
     public void setOurAddress(SocketAddress _ourAddress) {
         if( ourAddress == null) {
             ourAddress = _ourAddress;
-            RMessageReceived.put( ourAddress, new ArrayList<Integer>());
+            RMessageReceived.put( ourAddress, new HashMap<Integer, Integer>());
         }
     }
 }

@@ -456,8 +456,8 @@ public class NetManager {
                 sendClientError(cliStr, 5, "Failed to send error for a client who send a leave notification");
                 break;
             case 5:
-                //Here we have a deconnection request
-                System.out.println("Deconnection request handled");
+                //Here we have a disconnection request
+                System.out.println("Disconnection request handled");
                 sendClientLeave(cliStr);
                 closeSocket( duplexMessageWorker );
                 break;
@@ -884,12 +884,12 @@ public class NetManager {
     private void sendClientLeave(ClientStruct cliStr) {
         if (cliStr.hasPseudo()) {
             state.removePseudo(cliStr.getPseudo());
-            if( state.getStandAlone() ) {
-                // No need to use a complex diffusion algorithm, we are stand alone...
+
+            if( !state.getStandAlone() ) {
+                sendRClientLeave(cliStr.getPseudo());
+            } else {
                 ChatData chdata = new ChatData(0, 4, "", cliStr.getPseudo());
                 state.broadcast(chdata);
-            } else {
-                sendRClientLeave(cliStr.getPseudo());
             }
         }
         // Remove the client
