@@ -14,7 +14,6 @@ import java.util.Map;
  * A class that implements a Serializable vectorial clock for causal diffusion.
  */
 
-
 public class VectorialClock implements Serializable {
 
     /**
@@ -204,11 +203,16 @@ public class VectorialClock implements Serializable {
     }
 
     /**
-     *
+     * A method that clear our vectorial clock
      */
     public void clear() {
         map.clear();
     }
+
+    /**
+     * A method to display our vectorial class.
+     * Debug purposes.
+     */
     public void display() {
         System.out.println("Vectorial clock :");
         Iterator it = map.entrySet().iterator();
