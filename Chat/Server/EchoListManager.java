@@ -114,7 +114,7 @@ public class EchoListManager {
                     waveData.add(data);
             }
             message.setMessage(waveData);
-            netManager.getState().broadcastTokenWithoutFather(father, message);
+            netManager.getState().broadcastInterServerMessageWithoutFather(father, message);
         }
         if (originMessagesCount.get(nbEcho) == netManager.getState().getNbConnectedServers()) {
             System.out.println("Last message from the wave ;-)");

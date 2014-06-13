@@ -131,7 +131,7 @@ public class CBroadcastManager {
     /**
      * We will have to reinit our vectorial clock on topological changes
      *
-     * @param serversConnectedOnOurNetwork
+     * @param serversConnectedOnOurNetwork The servers present on our network, to init our vectorial clock with.
      */
     protected void reInitVectorialClock(ArrayList<Serializable> serversConnectedOnOurNetwork) {
         ourVectorialClock.clear();
@@ -139,7 +139,7 @@ public class CBroadcastManager {
             SocketAddress serverIdentifier = (SocketAddress) serializable;
             ourVectorialClock.put(serverIdentifier, 0);
         }
-        // ourVectorialClock.put(ourIdentifier,0);
+        ourVectorialClock.put(ourIdentifier,0);
     }
 
     /**

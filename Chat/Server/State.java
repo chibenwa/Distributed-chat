@@ -316,7 +316,7 @@ public class State {
      * @param newToken InterServerMessage to broadcast
      */
 
-    public void broadcastTokenWithoutFather(ClientStruct father, InterServerMessage newToken) {
+    public void broadcastInterServerMessageWithoutFather(ClientStruct father, InterServerMessage newToken) {
         // No need to protect this : accessed from only one thread, and not disturbed thanks to election lock
         for( ClientStruct connectionStruct : serverStrs) {
             if( connectionStruct != father) {
