@@ -38,3 +38,20 @@ problème que je me suis posé.
 Je me rend bien compte que ce problème n'a probablement pas de solutions. En revanche, je ne me voyais pas ne pas implémenter un 
 méchanisme pour essayer de faire quelque chose contre ce problème. C'est tout de même mieux que de ne rien faire du tout.
 
+Voici néanmoins l'hypothèse simplificatrice que je fais :
+
+Nous supposerons que :
+
+	* 1. Aucun changement de topologie n'est effectué pendant un changement de topologie
+	* 2. Aucun message n'est C broadcasté pendant un changement de topologie
+	* 3. Aucun C broadcast n'est en cours au moment du changement de topologie.
+
+A ces conditions, le changement de topologie est correctement effectué sans perte de message, et en respectant l'ordre causal.
+
+Nous ne pouvons que faire des suppositions concernant la première hypothèse.
+
+Concernant la deuxième, nous pouvons choisir de bloquer le C Broadcast manager pendant un changement de topologie, et délivrer les messages après. 
+Aucun message n'est perdu mais on ne respecte plus l'ordre causal.
+
+Concernant la troisième, nous pouvons ici aussi faire que des suppositions.
+

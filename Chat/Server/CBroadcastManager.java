@@ -99,11 +99,10 @@ public class CBroadcastManager {
             // Iterate on message Bag
             for(InterServerMessage interServerMessage : messageBag) {
                 if( ((VectorialClock)interServerMessage.getNeededData()).isNext(ourVectorialClock, interServerMessage.getIdentifier(), ourIdentifier) ) {
-                    System.out.println("Message C accepted !!!!!!! : " + interServerMessage.getSubType() );
-                    System.out.println(" >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Incrementing key for " + interServerMessage.getIdentifier());
-                    System.out.println("Before : " + ourVectorialClock.get(interServerMessage.getIdentifier()));
-                    ourVectorialClock.put(interServerMessage.getIdentifier(), ourVectorialClock.get(interServerMessage.getIdentifier())+1);
-                    System.out.println("After : ");
+                    if(interServerMessage.getIdentifier().toString().compareTo(ourIdentifier.toString()) != 0) {
+                        // Already incremented...
+                        ourVectorialClock.put(interServerMessage.getIdentifier(), ourVectorialClock.get(interServerMessage.getIdentifier()) + 1);
+                    }
                     // We C accept the message
                     cAcceptedMessages.add(interServerMessage);
                     // and remove it from the bag.
@@ -129,6 +128,11 @@ public class CBroadcastManager {
         return result;
     }
 
+    /**
+     * We will have to reinit our vectorial clock on topological changes
+     *
+     * @param serversConnectedOnOurNetwork
+     */
     protected void reInitVectorialClock(ArrayList<Serializable> serversConnectedOnOurNetwork) {
         ourVectorialClock.clear();
         for(Serializable serializable : serversConnectedOnOurNetwork) {
@@ -138,10 +142,17 @@ public class CBroadcastManager {
         // ourVectorialClock.put(ourIdentifier,0);
     }
 
+    /**
+     * A method to display our vectorial clock.
+     * Debug purposes.
+     */
     protected void displayVectorialClock() {
         ourVectorialClock.display();
     }
 
+    /**
+     * A method to display our message bag. Debug purposes.
+     */
     protected void displayMessageBag() {
         System.out.println();
         System.out.println("Display message bag... " + messageBag.size() + " messages in message bag.");
