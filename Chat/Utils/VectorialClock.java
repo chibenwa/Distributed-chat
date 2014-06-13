@@ -183,7 +183,7 @@ public class VectorialClock implements Serializable {
                 return true;
             }
             if( key.equals(initiatorKey) ) {
-                // Hack because I had problems with equality...
+                // Hack because I had problems with equality... 
                 Integer loc = value + 1;
                 if( loc.toString().compareTo( map.get(initiatorKey).toString() ) == 0){
                     continue;
