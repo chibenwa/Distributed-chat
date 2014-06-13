@@ -422,7 +422,7 @@ public class NetManager {
                         // No need to use a complex diffusion algorithm, we are stand alone...
                         state.broadcast(new ChatData(0, 3, "", rcv.getPseudo()));
                     } else {
-                        sendRClientJoin(rcv.getPseudo());
+                        sendCClientJoin(rcv.getPseudo());
                     }
                     break;
                 } else {
@@ -441,7 +441,7 @@ public class NetManager {
                     System.out.println("new message content " + rcv.getMessage());
                     state.broadcast(new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo()));
                     if( ! state.getStandAlone() ) {
-                        sendRMessage( rcv.getMessage(), cliStr.getPseudo());
+                        sendCMessage(rcv.getMessage(), cliStr.getPseudo());
                     }
                 } else {
                     System.out.println("Need pseudo man");
@@ -513,7 +513,7 @@ public class NetManager {
                     localChatData.pseudoDestination = dest;
                     sendClientMessage(state.getClientByPseudo(dest), localChatData, "Failed send private message to client directly connected");
                 } else {
-                    sendRPrivateMessage(rcv.getMessage(), rcv.getPseudo(), dest);
+                    sendCPrivateMessage(rcv.getMessage(), rcv.getPseudo(), dest);
                 }
                 break;
             case 13:
@@ -650,6 +650,7 @@ public class NetManager {
                     System.out.println(" ############################################# ");
                     state.setServerConnectedOnOurNetwork(res);
                     launchRServerSet(res);
+                    reInitVectorialClock();
                 }
                 break;
             case 42:
@@ -766,6 +767,7 @@ public class NetManager {
                 ArrayList<Serializable> listOfServers = ( ArrayList<Serializable>) incomingMessage.getMessage();
                 state.setServerConnectedOnOurNetwork(listOfServers);
                 System.out.println("Job done, I now use master's list of servers");
+                reInitVectorialClock();
                 break;
             case 7:
                 // The winner set up our client list
@@ -786,10 +788,10 @@ public class NetManager {
      * @param pseudo Pseudo of the client that just joined our network
      */
 
-    public void sendRClientJoin(String pseudo) {
-        InterServerMessage message = new InterServerMessage(0, 3, 1);
+    public void sendCClientJoin(String pseudo) {
+        InterServerMessage message = new InterServerMessage(0, 5, 1);
         message.setMessage( pseudo );
-        rBroadcastManager.launchBroadcast(message);
+        cBroadcastManager.launchBroadcast(message);
         state.broadcast(new ChatData(0, 3, "", pseudo));
     }
 
@@ -799,10 +801,10 @@ public class NetManager {
      * @param pseudo Pseudo of the client that just leaved our network
      */
 
-    public void sendRClientLeave(String pseudo) {
-        InterServerMessage message = new InterServerMessage(0, 3, 2);
+    public void sendCClientLeave(String pseudo) {
+        InterServerMessage message = new InterServerMessage(0, 5, 2);
         message.setMessage( pseudo );
-        rBroadcastManager.launchBroadcast(message);
+        cBroadcastManager.launchBroadcast(message);
         state.broadcast(new ChatData(0, 4, "", pseudo));
     }
 
@@ -813,7 +815,7 @@ public class NetManager {
      * @param pseudo The pseudo of the client that sent the message
      */
 
-    public void sendRMessage(String messageContent, String pseudo) {
+    public void sendCMessage(String messageContent, String pseudo) {
         InterServerMessage message = new InterServerMessage(0, 5, 3);
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.pseudo = pseudo;
@@ -831,14 +833,14 @@ public class NetManager {
      * @param dest Destination pseudo
      */
 
-    public void sendRPrivateMessage(String messageContent, String pseudo, String dest) {
-        InterServerMessage message = new InterServerMessage(0, 3, 5);
+    public void sendCPrivateMessage(String messageContent, String pseudo, String dest) {
+        InterServerMessage message = new InterServerMessage(0, 5, 5);
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.pseudo = pseudo;
         chatMessage.message = messageContent;
         chatMessage.dest = dest;
         message.setMessage(chatMessage);
-        rBroadcastManager.launchBroadcast(message);
+        cBroadcastManager.launchBroadcast(message);
     }
 
     /**
@@ -905,7 +907,7 @@ public class NetManager {
             state.removePseudo(cliStr.getPseudo());
 
             if( !state.getStandAlone() ) {
-                sendRClientLeave(cliStr.getPseudo());
+                sendCClientLeave(cliStr.getPseudo());
             } else {
                 ChatData chdata = new ChatData(0, 4, "", cliStr.getPseudo());
                 state.broadcast(chdata);
@@ -1021,5 +1023,9 @@ public class NetManager {
      */
     public void displayOurVectorialClock() {
         cBroadcastManager.displayVectorialClock();
+    }
+
+    public void displayCMessageBag() {
+        cBroadcastManager.displayMessageBag();
     }
 }

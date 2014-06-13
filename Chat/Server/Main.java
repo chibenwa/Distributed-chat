@@ -27,9 +27,6 @@ public class Main {
 /*
     I put here my roadMap :
 
-    // TODO 7 : Causal diffusion for chat messages
-    // TODO : Secure type casting of thing received from the network...)
-    // TODO : Edit manually vectorial clock... ( so that I can debug this fuck ! )
-    // TODO : Synchronize vectorial clock ( I will need a new more generic EchoManger, and the actual EchoManager will becone EchoListManager... ) Introduce a mergeData method
-    // Todo reset vectorial clock using connected server ( put every one to 0... ) + sleep 5 ms...
+    // TODO : Secure type casting of thing received from the network...
+
  */

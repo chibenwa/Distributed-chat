@@ -100,6 +100,10 @@ public class CBroadcastManager {
             for(InterServerMessage interServerMessage : messageBag) {
                 if( ((VectorialClock)interServerMessage.getNeededData()).isNext(ourVectorialClock, interServerMessage.getIdentifier(), ourIdentifier) ) {
                     System.out.println("Message C accepted !!!!!!! : " + interServerMessage.getSubType() );
+                    System.out.println(" >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Incrementing key for " + interServerMessage.getIdentifier());
+                    System.out.println("Before : " + ourVectorialClock.get(interServerMessage.getIdentifier()));
+                    ourVectorialClock.put(interServerMessage.getIdentifier(), ourVectorialClock.get(interServerMessage.getIdentifier())+1);
+                    System.out.println("After : ");
                     // We C accept the message
                     cAcceptedMessages.add(interServerMessage);
                     // and remove it from the bag.
@@ -131,9 +135,19 @@ public class CBroadcastManager {
             SocketAddress serverIdentifier = (SocketAddress) serializable;
             ourVectorialClock.put(serverIdentifier, 0);
         }
+        // ourVectorialClock.put(ourIdentifier,0);
     }
 
     protected void displayVectorialClock() {
         ourVectorialClock.display();
+    }
+
+    protected void displayMessageBag() {
+        System.out.println();
+        System.out.println("Display message bag... " + messageBag.size() + " messages in message bag.");
+        for(InterServerMessage interServerMessage : messageBag) {
+            System.out.println(" -- New message. Here is its subtype : "+interServerMessage.getSubType()+" and its vectorial clock");
+            ((VectorialClock)interServerMessage.getNeededData()).display();
+        }
     }
 }

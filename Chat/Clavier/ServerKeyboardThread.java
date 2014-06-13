@@ -71,8 +71,11 @@ public class ServerKeyboardThread extends KeyboardThread {
                 netManager.launchPseudoDiscovery();
                 break;
             case 7:
-                netManager.reInitVectorialClock();
+            //    netManager.reInitVectorialClock();
                 netManager.displayOurVectorialClock();
+                break;
+            case 8:
+                netManager.displayCMessageBag();
                 break;
             default:
                 System.out.println("Command unrecognise...");
@@ -95,6 +98,7 @@ public class ServerKeyboardThread extends KeyboardThread {
         System.out.println("5 : Display electoral state");
         System.out.println("6 : Debug button");
         System.out.println("7 : Re-init vectorial clock");
+        System.out.println("8 : Display C message bag");
         System.out.println();
     }
 
