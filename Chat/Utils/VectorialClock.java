@@ -180,10 +180,15 @@ public class VectorialClock implements Serializable {
                 return false;
             }
             if( key.equals(localAddressKey) ) {
-                continue;
+                return true;
             }
             if( key.equals(initiatorKey) ) {
-                continue;
+                // Hack because I had problems with equality...
+                Integer loc = value + 1;
+                if( loc.toString().compareTo( map.get(initiatorKey).toString() ) == 0){
+                    continue;
+                }
+                return false;
             }
             if( value > this.get(key) ) {
                 return false;
