@@ -66,6 +66,10 @@ public class VectorialClock implements Serializable {
             Key otherKey = (Key) obj;
             return keySocket.equals(otherKey.keySocket);
         }
+
+        public String getSocketString() {
+            return keySocket.toString();
+        }
     }
 
     /**
@@ -75,7 +79,7 @@ public class VectorialClock implements Serializable {
      * @param value the value to put
      */
 
-    public void put( SocketAddress key, int value) {
+    public void put( SocketAddress key, Integer value) {
         map.put(new Key(key), value);
     }
 
@@ -86,8 +90,8 @@ public class VectorialClock implements Serializable {
      * @return The value associated with this Socket address
      */
 
-    public int get( SocketAddress key) {
-        return (int ) map.get( new Key(key) );
+    public Integer get( SocketAddress key) {
+        return (Integer ) map.get( new Key(key) );
     }
 
     /**
@@ -97,8 +101,8 @@ public class VectorialClock implements Serializable {
      * @return The value associated with this Key
      */
 
-    private int get( Key key) {
-        return (int ) map.get( key );
+    private Integer get( Key key) {
+        return (Integer ) map.get( key );
     }
 
     /**
@@ -113,13 +117,13 @@ public class VectorialClock implements Serializable {
         while( it.hasNext()) {
             Map.Entry pairs = (Map.Entry) it.next();
             Key key = (Key)pairs.getKey();
-            int value = (int) pairs.getValue();
+            Integer value = (Integer) pairs.getValue();
             Object o = map.get(key);
             if( o == null) {
                 System.out.println("Not the same value inside the vectorial clock. Critic topological knowledge error.");
                 return false;
             }
-            if( value > (int) map.get(key) ) {
+            if( value > (Integer) map.get(key) ) {
                 return false;
             }
         }
@@ -137,7 +141,7 @@ public class VectorialClock implements Serializable {
         while( it.hasNext()) {
             Map.Entry pairs = (Map.Entry) it.next();
             Key key = (Key)pairs.getKey();
-            int value = (int) pairs.getValue();
+            Integer value = (Integer) pairs.getValue();
             Object o = map.get(key);
             if( o == null) {
                 System.out.println("Not the same value inside the vectorial clock. Critic topological knowledge error.");
@@ -170,7 +174,7 @@ public class VectorialClock implements Serializable {
         while( it.hasNext()) {
             Map.Entry pairs = (Map.Entry) it.next();
             Key key = (Key)pairs.getKey();
-            int value = (int) pairs.getValue();
+            Integer value = (Integer) pairs.getValue();
             Object o = map.get(key);
             if( o == null) {
                 System.out.println("Not the same value inside the vectorial clock. Critic topological knowledge error.");
@@ -196,6 +200,28 @@ public class VectorialClock implements Serializable {
      */
 
     public void incrementKey( SocketAddress socketKey) {
-        map.put( new Key(socketKey), (int) map.get( new Key(socketKey)) + 1);
+        map.put( new Key(socketKey), (Integer) map.get( new Key(socketKey)) + 1);
+    }
+
+    /**
+     *
+     */
+    public void clear() {
+        map.clear();
+    }
+    public void display() {
+        System.out.println("Vectorial clock :");
+        Iterator it = map.entrySet().iterator();
+        while( it.hasNext()) {
+            Map.Entry pairs = (Map.Entry) it.next();
+            Key key = (Key)pairs.getKey();
+            int value = (Integer) pairs.getValue();
+            Object o = map.get(key);
+            if( o == null) {
+                System.out.println("Not the same value inside the vectorial clock. Critic topological knowledge error.");
+                continue;
+            }
+            System.out.println("Server : " + key.getSocketString() + " <=> " + value);
+        }
     }
 }

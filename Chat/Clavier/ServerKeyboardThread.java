@@ -70,6 +70,10 @@ public class ServerKeyboardThread extends KeyboardThread {
                 //netManager.launchServerDiscovery();
                 netManager.launchPseudoDiscovery();
                 break;
+            case 7:
+                netManager.reInitVectorialClock();
+                netManager.displayOurVectorialClock();
+                break;
             default:
                 System.out.println("Command unrecognise...");
                 break;
@@ -90,6 +94,7 @@ public class ServerKeyboardThread extends KeyboardThread {
         System.out.println("4 : Re initialize network on this node ( all clients' and servers' connections will be closed )");
         System.out.println("5 : Display electoral state");
         System.out.println("6 : Debug button");
+        System.out.println("7 : Re-init vectorial clock");
         System.out.println();
     }
 

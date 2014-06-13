@@ -3,11 +3,9 @@ package Chat.Server;
 import Chat.Netmessage.InterServerMessage;
 import Chat.Utils.VectorialClock;
 
+import java.io.Serializable;
 import java.net.SocketAddress;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 /**
  * Created by benwa on 6/12/14.
@@ -46,7 +44,7 @@ public class CBroadcastManager {
      */
 
     CBroadcastManager(RBroadcastManager _rBroadcastManager) {
-        messageBag = new TreeSet<InterServerMessage>();
+        messageBag = new HashSet<InterServerMessage>();
         ourVectorialClock = new VectorialClock();
         rBroadcastManager = _rBroadcastManager;
         cAcceptedMessages = new ArrayList<InterServerMessage>();
@@ -86,14 +84,22 @@ public class CBroadcastManager {
      * @return Return true if one ( or more ) message was C accepted after receiving this message. False in other cases.
      */
     public Boolean manageInput( InterServerMessage message) {
+        if( ! rBroadcastManager.manageInput(message) ) {
+            System.out.println("Paquet not R accepted");
+            return false;
+        }
+        System.out.println("Paquet R accepted. Add it to message  Box. Here is its vectorial clock.");
         messageBag.add(message);
         Boolean needToProcessMessageBag = true;
         Boolean result = false;
+        VectorialClock messageVectorialClock = (VectorialClock) message.getNeededData();
+        messageVectorialClock.display();
         while(needToProcessMessageBag) {
             needToProcessMessageBag = false;
             // Iterate on message Bag
             for(InterServerMessage interServerMessage : messageBag) {
                 if( ((VectorialClock)interServerMessage.getNeededData()).isNext(ourVectorialClock, interServerMessage.getIdentifier(), ourIdentifier) ) {
+                    System.out.println("Message C accepted !!!!!!! : " + interServerMessage.getSubType() );
                     // We C accept the message
                     cAcceptedMessages.add(interServerMessage);
                     // and remove it from the bag.
@@ -115,20 +121,19 @@ public class CBroadcastManager {
      */
     public ArrayList<InterServerMessage> getCAcceptedMessages() {
         ArrayList<InterServerMessage> result = cAcceptedMessages;
-        cAcceptedMessages.clear();
+        cAcceptedMessages = new ArrayList<InterServerMessage>();
         return result;
     }
 
-    protected void setOurVectorialClock(VectorialClock vectorialClock) {
-        ourVectorialClock = vectorialClock;
+    protected void reInitVectorialClock(ArrayList<Serializable> serversConnectedOnOurNetwork) {
+        ourVectorialClock.clear();
+        for(Serializable serializable : serversConnectedOnOurNetwork) {
+            SocketAddress serverIdentifier = (SocketAddress) serializable;
+            ourVectorialClock.put(serverIdentifier, 0);
+        }
     }
 
-    /**
-     * Used by EchoVectorialClockManager to return our
-     * @return
-     */
-    protected VectorialClock getOurVectorialClock() {
-        return ourVectorialClock;
+    protected void displayVectorialClock() {
+        ourVectorialClock.display();
     }
-
 }

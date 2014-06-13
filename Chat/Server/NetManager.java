@@ -34,7 +34,7 @@ public class NetManager {
     /**
      * Server's identifier. Unique across network.
      */
-    private SocketAddress p;
+  //  private SocketAddress p;
 
     // Thread safe
     /**
@@ -115,10 +115,11 @@ public class NetManager {
             ssc.configureBlocking(false);
             ServerSocket ss = ssc.socket();
             InetSocketAddress add = new InetSocketAddress(port);
-            p = add;
+         //   p = add;
             ss.bind(add);
             electionHandler.setP(add);
             rBroadcastManager.setOurAddress(add);
+            cBroadcastManager.setOurAddress(add);
             echoServerListManager.setP(add);
             echoPseudoListManager.setP(add);
         } catch (IOException se) {
@@ -617,8 +618,10 @@ public class NetManager {
                 // C diffusion
                 System.out.println("C broadcast detected");
                 if( cBroadcastManager.manageInput( incomingMessage) ) {
+                    System.out.println("Results for C broadcast : input messages");
                     ArrayList<InterServerMessage> acceptedMessages = cBroadcastManager.getCAcceptedMessages();
                     for( InterServerMessage acceptedMessage : acceptedMessages) {
+                        System.out.println("Managing message subtype : " + acceptedMessage.getSubType());
                         manageServerMessageSubtype(acceptedMessage);
                     }
                 }
@@ -811,12 +814,13 @@ public class NetManager {
      */
 
     public void sendRMessage(String messageContent, String pseudo) {
-        InterServerMessage message = new InterServerMessage(0, 3, 3);
+        InterServerMessage message = new InterServerMessage(0, 5, 3);
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.pseudo = pseudo;
         chatMessage.message = messageContent;
         message.setMessage(chatMessage);
-        rBroadcastManager.launchBroadcast(message);
+        //rBroadcastManager.launchBroadcast(message);
+        cBroadcastManager.launchBroadcast(message);
     }
 
     /**
@@ -1003,5 +1007,19 @@ public class NetManager {
                 electionHandler.launchElection();
             }
         }
+    }
+
+    /**
+     * Use the connected server on our network to re init our vectoral clock
+     */
+    public void reInitVectorialClock() {
+        cBroadcastManager.reInitVectorialClock( state.getServerConnectedOnOurNetwork() );
+    }
+
+    /**
+     * Proxy method to display our vectorial clock ( Debug purposes).
+     */
+    public void displayOurVectorialClock() {
+        cBroadcastManager.displayVectorialClock();
     }
 }
