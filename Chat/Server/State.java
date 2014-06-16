@@ -23,14 +23,6 @@ public class State {
      */
     private NetManager netManager;
     /**
-     * A lock to protect data about servers
-     */
-    private final ReentrantLock serverLock = new ReentrantLock();
-    /**
-     * A lock to protect data about clients
-     */
-    private final ReentrantLock clientLock = new ReentrantLock();
-    /**
      * List of connection structures for clients
      */
     private List<ClientStruct> cliStrs;
@@ -74,7 +66,6 @@ public class State {
      */
 
     public String buildClientList() {
-        clientLock.lock();
         String pseudoChunk = "";
         Boolean first = true;
         for( ClientStruct cls : cliStrs) {
@@ -85,7 +76,6 @@ public class State {
             }
             pseudoChunk += cls.getPseudo();
         }
-        clientLock.unlock();
         return pseudoChunk;
     }
 
@@ -102,11 +92,9 @@ public class State {
 
 
     public void broadcast( ChatData mes ) {
-        clientLock.lock();
         for ( ClientStruct cls : cliStrs) {
             netManager.sendClientMessage(cls, mes, "Failed to broadcast message");
         }
-        clientLock.unlock();
     }
 
     /**
@@ -120,14 +108,11 @@ public class State {
      */
 
     public Boolean isServerConnectionEstablished( FullDuplexMessageWorker fdmw ) {
-        serverLock.lock();
         for( ClientStruct conStr : serverStrs) {
             if( conStr.getFullDuplexMessageWorker() == fdmw ) {
-                serverLock.unlock();
                 return true;
             }
         }
-        serverLock.unlock();
         return false;
     }
 
@@ -140,10 +125,8 @@ public class State {
      */
 
     public void addServer(ClientStruct cliStr){
-        serverLock.lock();
         serverStrs.add(cliStr);
         standAlone = false;
-        serverLock.unlock();
     }
 
     /**
@@ -157,7 +140,6 @@ public class State {
      */
 
     public String getServerList() {
-        serverLock.lock();
         String res = "";
         Boolean first = true;
         for( ClientStruct cstr : serverStrs ) {
@@ -173,7 +155,6 @@ public class State {
                 ioe.printStackTrace();
             }
         }
-        serverLock.unlock();
         return res;
     }
 
@@ -189,8 +170,6 @@ public class State {
      */
 
     public void reInitNetwork() {
-        clientLock.lock();
-        serverLock.lock();
         // No fear for dead locks as this is the only place were we lock for both clients and servers locks
         for( ClientStruct cstr : serverStrs) {
             netManager.sendInterServerMessage(cstr, new InterServerMessage(0,2), "Can not send a disconnection demand");
@@ -204,8 +183,6 @@ public class State {
         }
         serverStrs.clear();
         cliStrs.clear();
-        clientLock.unlock();
-        serverLock.unlock();
     }
 
     /**
@@ -217,14 +194,12 @@ public class State {
      */
 
     public Boolean isPseudoTaken(String pseudo) {
-        clientLock.lock();
         Boolean alredyExist = false;
         for (ClientStruct cls : cliStrs) {
             if (cls.getPseudo().equals(pseudo)) {
                 alredyExist = true;
             }
         }
-        clientLock.unlock();
         return alredyExist;
     }
 
@@ -235,9 +210,7 @@ public class State {
      */
 
     public void addClient(ClientStruct cliStr) {
-        clientLock.lock();
         cliStrs.add(cliStr);
-        clientLock.unlock();
     }
 
     /**
@@ -247,9 +220,7 @@ public class State {
      */
 
     public void removeClient(ClientStruct cliStr) {
-        clientLock.lock();
         cliStrs.remove(cliStr);
-        clientLock.unlock();
     }
 
     /**
@@ -259,12 +230,10 @@ public class State {
      */
 
     public void removeServer(ClientStruct toRemove) {
-        serverLock.lock();
         serverStrs.remove(toRemove);
         if( serverStrs.size() ==  0 ) {
             standAlone = true;
         }
-        serverLock.unlock();
     }
 
     /**

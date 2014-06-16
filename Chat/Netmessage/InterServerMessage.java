@@ -88,6 +88,8 @@ public class InterServerMessage extends NetMessage {
      *              Type 5 : private message forward
      *              Type 6 : Set your list of servers ( The elected server use this message to synchronize server data after its election, after an Echo wave servers )
      *              Type 7 : Set the list of clients ( The elected server use this message to synchronize server data after its election, after an Echo wave servers )
+     *              Type 8 : Diffusion of a MUTEX request
+     *              Type 9 : Somebody give us the token
      */
 
     public InterServerMessage(int _seq, int _type, int _subType) {

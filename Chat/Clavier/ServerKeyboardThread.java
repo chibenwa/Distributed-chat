@@ -71,11 +71,20 @@ public class ServerKeyboardThread extends KeyboardThread {
                 netManager.launchPseudoDiscovery();
                 break;
             case 7:
-            //    netManager.reInitVectorialClock();
-                netManager.displayOurVectorialClock();
+                netManager.reInitVectorialClock();
+            //    netManager.displayOurVectorialClock();
                 break;
             case 8:
                 netManager.displayCMessageBag();
+                break;
+            case 9:
+                netManager.displayLockState();
+                break;
+            case 10:
+                netManager.startUsingResource();
+                break;
+            case 11:
+                netManager.stopIsingResource();
                 break;
             default:
                 System.out.println("Command unrecognise...");
@@ -90,15 +99,18 @@ public class ServerKeyboardThread extends KeyboardThread {
     protected void displayHelp() {
         System.out.println();
         System.out.println("Enter a command to execute an action : ");
-        System.out.println("0 : Display clients connected to this server");
+        System.out.println("0 : Display clients connected to this server : Debug : not thread safe");
         System.out.println("1 : Connect to another server");
-        System.out.println("2 : Launch an election");
-        System.out.println("3 : Display servers directly connected to this server");
-        System.out.println("4 : Re initialize network on this node ( all clients' and servers' connections will be closed )");
-        System.out.println("5 : Display electoral state");
-        System.out.println("6 : Debug button");
-        System.out.println("7 : Re-init vectorial clock");
-        System.out.println("8 : Display C message bag");
+        System.out.println("2 : Launch an election : Debug : not thread safe");
+        System.out.println("3 : Display servers directly connected to this server : Debug : not thread safe");
+        System.out.println("4 : Re initialize network on this node ( all clients' and servers' connections will be closed ) : Debug : not thread safe");
+        System.out.println("5 : Display electoral state : Debug : not thread safe");
+        System.out.println("6 : Debug button : Debug : not thread safe");
+        System.out.println("7 : Re-init vectorial clock : Debug : not thread safe");
+        System.out.println("8 : Display C message bag : Debug : not thread safe");
+        System.out.println("9 : Display lock state");
+        System.out.println("10 : Lock");
+        System.out.println("11 : Unlock");
         System.out.println();
     }
 

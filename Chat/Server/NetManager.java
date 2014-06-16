@@ -35,7 +35,7 @@ public class NetManager {
      * Server's identifier. Unique across network.
      */
   //  private SocketAddress p;
-
+    private LockManager lockManager;
     // Thread safe
     /**
      * Election handler that manages elections
@@ -71,6 +71,9 @@ public class NetManager {
      */
     private State state;
 
+    protected LockManager getLockManager() {
+        return lockManager;
+    }
 
     /**
      * Initialisation of the Network manager.
@@ -89,6 +92,7 @@ public class NetManager {
         echoServerListManager = new EchoServerListManager(this);
         echoPseudoListManager = new EchoPseudoListManager(this);
         cBroadcastManager = new CBroadcastManager(rBroadcastManager);
+        lockManager = new LockManager(rBroadcastManager);
     }
 
     /**
@@ -115,13 +119,13 @@ public class NetManager {
             ssc.configureBlocking(false);
             ServerSocket ss = ssc.socket();
             InetSocketAddress add = new InetSocketAddress(port);
-         //   p = add;
             ss.bind(add);
             electionHandler.setP(add);
             rBroadcastManager.setOurAddress(add);
             cBroadcastManager.setOurAddress(add);
             echoServerListManager.setP(add);
             echoPseudoListManager.setP(add);
+            lockManager.setOurAddress(add);
         } catch (IOException se) {
             System.out.println("Failed to create server");
             se.printStackTrace();
@@ -301,7 +305,9 @@ public class NetManager {
     protected void sendInterServerMessage( ClientStruct clientStruct,  InterServerMessage mes, String ioErrorMessage ) {
         mes.setElectionWinner( electionHandler.getWin() );
         try {
+            clientStruct.lock();
             clientStruct.getFullDuplexMessageWorker().sendMsg(2, mes);
+            clientStruct.unlock();
         } catch (IOException ioe) {
             System.out.println(ioErrorMessage);
             manageIOErrorOnServerConnection(clientStruct);
@@ -321,7 +327,9 @@ public class NetManager {
 
     protected void sendClientMessage( ClientStruct clientStruct, ChatData chatData, String ioErrorMessage ) {
         try{
+            clientStruct.lock();
             clientStruct.getFullDuplexMessageWorker().sendMsg(0, chatData);
+            clientStruct.unlock();
         } catch( IOException ioe) {
             System.out.println(ioErrorMessage);
             manageIOErrorOnClientConnection( clientStruct);
@@ -651,6 +659,7 @@ public class NetManager {
                     state.setServerConnectedOnOurNetwork(res);
                     launchRServerSet(res);
                     reInitVectorialClock();
+                    lockManager.makeDemInit(res);
                 }
                 break;
             case 42:
@@ -768,12 +777,21 @@ public class NetManager {
                 state.setServerConnectedOnOurNetwork(listOfServers);
                 System.out.println("Job done, I now use master's list of servers");
                 reInitVectorialClock();
+                lockManager.makeDemInit(listOfServers);
                 break;
             case 7:
                 // The winner set up our client list
                 ArrayList<Serializable> listOfPseudo = ( ArrayList<Serializable>) incomingMessage.getMessage();
                 state.setPseudoList(listOfPseudo);
                 System.out.println("Job done, I now use master's list of pseudos");
+                break;
+            case 8:
+                System.out.println("We received a lock notification  --___-- __---__");
+                lockManager.manageRequestBroadcast(incomingMessage);
+                break;
+            case 9:
+                System.out.println("We received the token !!!!!!<<<>>>!!!");
+                lockManager.manageTokenReception(incomingMessage);
                 break;
             default:
                 // Unknown message subtype received
@@ -1027,5 +1045,15 @@ public class NetManager {
 
     public void displayCMessageBag() {
         cBroadcastManager.displayMessageBag();
+    }
+
+    public void displayLockState() {
+        lockManager.display();
+    }
+    public void startUsingResource() {
+        lockManager.askLock();
+    }
+    public void stopIsingResource() {
+        lockManager.stopUsingRessource();
     }
 }

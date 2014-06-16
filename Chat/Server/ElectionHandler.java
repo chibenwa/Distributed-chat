@@ -271,11 +271,11 @@ public class ElectionHandler {
                             System.out.println("We won");
                             state = 2;
                             // Tasks that must be performed by the winner
-                            netManager.launchPseudoDiscovery();
-                            netManager.launchServerDiscovery();
+                            winActions();
                         } else {
                             System.out.println("We lost");
                             state = 1;
+                            looseAction();
                         }
                         electionMutex.lock();
                         // We are no more in an electoral state. Unlock it dude.
@@ -325,6 +325,14 @@ public class ElectionHandler {
         return win;
     }
 
+    private void winActions() {
+        netManager.launchPseudoDiscovery();
+        netManager.launchServerDiscovery();
+        netManager.getLockManager().regenerateToken( );
+    }
 
+    private void looseAction() {
+        netManager.getLockManager().destroyToken(  );
+    }
 
 }

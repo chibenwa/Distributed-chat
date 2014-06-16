@@ -2,6 +2,8 @@ package Chat.Utils;
 
 import csc4509.FullDuplexMessageWorker;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 /**
  * Created by benwa on 6/7/14.
  *
@@ -27,6 +29,13 @@ public class ClientStruct {
      */
     private Boolean pseudoSet = false;
 
+    private final ReentrantLock writeLock = new ReentrantLock();;
+    public void lock() {
+        writeLock.lock();
+    }
+    public void unlock() {
+        writeLock.unlock();
+    }
     /**
      * Accessor for pseudoSet.
      *
@@ -35,6 +44,7 @@ public class ClientStruct {
     public Boolean hasPseudo() {
         return pseudoSet;
     }
+
 
     /**
      * Setter for pseudo
