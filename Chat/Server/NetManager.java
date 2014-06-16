@@ -1043,16 +1043,30 @@ public class NetManager {
         cBroadcastManager.displayVectorialClock();
     }
 
+    /**
+     * Display the waiting messages in C Broadcast manager.
+     */
     public void displayCMessageBag() {
         cBroadcastManager.displayMessageBag();
     }
 
+    /**
+     * Debug utility : display our lock manager state
+     */
     public void displayLockState() {
         lockManager.display();
     }
+
+    /**
+     * Start using resource. Ask for token, and we will start using resource on reception.
+     */
     public void startUsingResource() {
         lockManager.askLock();
     }
+
+    /**
+     * Stop using resource. We will give the token to somebody else if we were asked for.
+     */
     public void stopIsingResource() {
         lockManager.stopUsingRessource();
     }

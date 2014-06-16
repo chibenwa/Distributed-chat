@@ -19,46 +19,10 @@ public class LockManager {
      * so we have to make it available.
      */
     private RBroadcastManager rBroadcastManager;
-
-    /**
-     * Basic constructor
-     * @param _rBroadcastManager The broadcast manager that will
-     */
-    public LockManager(RBroadcastManager _rBroadcastManager) {
-        rBroadcastManager = _rBroadcastManager;
-    }
     /**
      * A boolean that indicates if we are currently using the ressource
      */
-    private Boolean isUsingRessource = false;
-
-    /**
-     * The method that start doing something.
-     *
-     * You should overwrite it in subclass ( to get something that really do something... )
-     * The task should be non blocking. It is your responsibility to use a thread.
-     */
-    public void startUsingRessource() {
-        isUsingRessource = true;
-    }
-
-    /**
-     * The method to call to release resources.
-     *
-     * It is your responsibility to stop what you were doing... ( threads, etc... ).
-     */
-    public void stopUsingRessource() {
-        isUsingRessource = false;
-        releaseLock();
-    }
-
-    /**
-     * Basic accessor to know if we are currently using this resource.
-     * @return true if we are using this resource, false in other cases.
-     */
-    public Boolean getIsUsingRessource() {
-        return isUsingRessource;
-    }
+    private Boolean isUsingResource = false;
     /**
      * A Boolean that indicates if we already asked a lock
      */
@@ -72,6 +36,52 @@ public class LockManager {
      */
     private Boolean hasToken = false;
     /**
+     * The Token we are using.
+     */
+    private LogicalJetonClock logicalJetonClock = null;
+    /**
+     * Our server identifier
+     */
+    private SocketAddress ourIdentifier;
+    /**
+     * The dem hash map from the algorithm
+     */
+    private SendableHashMap dem = new SendableHashMap();
+
+
+
+
+
+    /**
+     * Basic constructor
+     * @param _rBroadcastManager The broadcast manager that will
+     */
+    public LockManager(RBroadcastManager _rBroadcastManager) {
+        rBroadcastManager = _rBroadcastManager;
+    }
+
+
+    /**
+     * The method that start doing something.
+     *
+     * You should overwrite it in subclass ( to get something that really do something... )
+     * The task should be non blocking. It is your responsibility to use a thread.
+     */
+    public void startUsingRessource() {
+        isUsingResource = true;
+    }
+
+    /**
+     * The method to call to release resources.
+     *
+     * It is your responsibility to stop what you were doing... ( threads, etc... ).
+     */
+    public void stopUsingRessource() {
+        isUsingResource = false;
+        releaseLock();
+    }
+
+    /**
      * Ask for the lock. startUsingResources is then called when we receive the token.
      */
     public void askLock() {
@@ -79,7 +89,6 @@ public class LockManager {
             lockAsked = true;
             if (!hasToken) {
                 nsp++;
-                // TODO broadcast demand...
                 InterServerMessage message = new InterServerMessage(0, 3, 8);
                 message.setMessage( nsp );
                 message.setIdentifier(ourIdentifier);
@@ -98,9 +107,7 @@ public class LockManager {
     protected void releaseLock() {
         logicalJetonClock.put(ourIdentifier, nsp);
         SocketAddress next = logicalJetonClock.getNext(dem,ourIdentifier);
-        if(next == null) {
-            // No followers, we are waiting for a demand
-        } else {
+        if(next != null) {
             InterServerMessage message = new InterServerMessage(0, 3, 9);
             message.setMessage( logicalJetonClock );
             message.setNeededData( next );
@@ -110,29 +117,28 @@ public class LockManager {
         }
     }
 
+
+
     /**
-     * The Jeton we are using.
-     */
-    private LogicalJetonClock logicalJetonClock = null;
-    /**
-     * Process input to make this class evole
+     * Manage input. Call this for Lock Request Broadcast.
+     * @param interServerMessage Message that holds the lock request broadcast.
      */
     protected void manageRequestBroadcast(InterServerMessage interServerMessage) {
         // Message related
         Integer nsq = (Integer) interServerMessage.getMessage();
-        SocketAddress q = (SocketAddress ) interServerMessage.getIdentifier();
+        SocketAddress q = interServerMessage.getIdentifier();
         dem.put(q, Math.max(nsq, dem.get(q)) );
-        if(hasToken && !isUsingRessource) {
+        if(hasToken && !isUsingResource) {
             releaseLock();
         }
     }
 
     /**
      * Manage the reception of the token. It launches the task specified in start using resources.
-     * @param interServerMessage
+     * @param interServerMessage The message we have to interpret...
      */
     protected void manageTokenReception(InterServerMessage interServerMessage) {
-        if( ((SocketAddress)interServerMessage.getNeededData()).toString().compareTo(ourIdentifier.toString()) == 0 ) {
+        if( (interServerMessage.getNeededData()).toString().compareTo(ourIdentifier.toString()) == 0 ) {
             System.out.println("This token is for us");
             if (lockAsked) {
                 hasToken = true;
@@ -146,10 +152,7 @@ public class LockManager {
             System.out.println("This token is for " + interServerMessage.getIdentifier() );
         }
     }
-    /**
-     * Our server identiier
-     */
-    private SocketAddress ourIdentifier;
+
     /**
      * Called when server is launched. It set the server identifier we will use with our waves.
      *
@@ -160,20 +163,38 @@ public class LockManager {
             ourIdentifier = _ourIdentifier;
         }
     }
+
+    /**
+     * Prepare us as failed election node.
+     *
+     * We will not have the token
+     */
     protected void destroyToken() {
         logicalJetonClock = null;
         lockAsked = false;
-        isUsingRessource = false;
+        isUsingResource = false;
         hasToken = false;
+        nsp = 0;
     }
+
+    /**
+     * Prepare us as winner election node.
+     *
+     * We will not have the token...
+     */
     protected void regenerateToken( ) {
         hasToken = true;
-        isUsingRessource = false;
+        isUsingResource = false;
         lockAsked = false;
+        nsp = 0;
         if(logicalJetonClock == null) {
             logicalJetonClock = new LogicalJetonClock();
         }
     }
+
+    /**
+     * Display our token ( if we have it )
+     */
     private void diplayToken() {
         if(logicalJetonClock == null) {
             System.out.println("We do not have the token");
@@ -181,6 +202,10 @@ public class LockManager {
             logicalJetonClock.display();
         }
     }
+
+    /**
+     * Debug utility : display our lock state.
+     */
     public void display() {
         System.out.println("Our identifier : " + ourIdentifier);
         if(hasToken) {
@@ -189,7 +214,7 @@ public class LockManager {
         } else {
             System.out.println("We do not have the token");
         }
-        if(isUsingRessource) {
+        if(isUsingResource) {
             System.out.println("We are using resources");
         } else {
             System.out.println("We do not use resources");
@@ -200,14 +225,23 @@ public class LockManager {
             System.out.println("We are not asking for lock");
         }
     }
-    private SendableHashMap dem = new SendableHashMap();
 
+    /**
+     * Utility function. Re init dem.
+     * @param serversConnectedOnOurNetwork Server list used to generate dem hash list
+     */
     private void demInit(ArrayList<Serializable> serversConnectedOnOurNetwork) {
         for(Serializable serializable : serversConnectedOnOurNetwork) {
             SocketAddress serverIdentifier = (SocketAddress) serializable;
             dem.put(serverIdentifier, 0);
         }
     }
+
+    /**
+     * Re init dem parameter and regenerate token ( only the elected master did this ). Used on topological changes.
+     *
+     * @param serversConnectedOnOurNetwork Server list used to generate dem hash list and token
+     */
     protected void makeDemInit(ArrayList<Serializable> serversConnectedOnOurNetwork) {
         if( hasToken ) {
             logicalJetonClock.generateFromServerList( serversConnectedOnOurNetwork, ourIdentifier );
