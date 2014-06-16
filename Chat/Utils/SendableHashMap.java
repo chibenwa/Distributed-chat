@@ -7,6 +7,10 @@ import java.util.LinkedHashMap;
 
 /**
  * Created by benwa on 6/16/14.
+ *
+ * License : GLP 2.0
+ *
+ * A hash map that is the base for Serializable Hash map to send across network.
  */
 public class SendableHashMap implements Serializable{
 

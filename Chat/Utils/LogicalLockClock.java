@@ -8,8 +8,16 @@ import java.util.Map;
 
 /**
  * Created by benwa on 6/16/14.
+ *
+ *  License : GLP 2.0
+ *
+ *  A class that holds data for the lockManager. We use it to maintain the Token inner structure
  */
 public class LogicalLockClock extends SendableHashMap {
+    /**
+     * Used to generate the token using the list of available servers.
+     * @param serversConnectedOnOurNetwork list of available servers.
+     */
     public void generateFromServerList( ArrayList<Serializable> serversConnectedOnOurNetwork ) {
         map.clear();
         for(Serializable serializable : serversConnectedOnOurNetwork) {
@@ -18,6 +26,12 @@ public class LogicalLockClock extends SendableHashMap {
         }
     }
 
+    /**
+     * Get the next server that made a request for lock.
+     * @param ourDemands Our demands hash map we will be compared to.
+     * @param ourSocketAddress Our identifier ( to know were to begin our searches )
+     * @return Null if no follower was found, a pointer to the next one in other cases
+     */
     public SocketAddress getNext(SendableHashMap ourDemands, SocketAddress ourSocketAddress) {
         Key ourKey = new Key(ourSocketAddress);
         Boolean hasLocatedOurAddress = false;
@@ -52,6 +66,9 @@ public class LogicalLockClock extends SendableHashMap {
         return null;
     }
 
+    /**
+     * Display our logical clock.
+     */
     public void display() {
         System.out.println("Logical clock :");
         Iterator it = map.entrySet().iterator();

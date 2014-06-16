@@ -22,7 +22,7 @@ Le présent README :
 
 ## Fonctionnalités
 
-Nous cherchons à réaliser un Chat distribué avec plusieurs serveurs. Nous souhaitons, autant que possible, que notre architecture supporte les changements de topologie aux niveau des serveurs ( ajout ou d�part d'un ou plusieurs serveurs ).
+Nous cherchons à réaliser un Chat distribué avec plusieurs serveurs. Nous souhaitons, autant que possible, que notre architecture supporte les changements de topologie aux niveau des serveurs ( ajout ou départ d'un ou plusieurs serveurs ).
 
 Note : Autant que possible indique que les solutions mises en place pour gérer les changements de topologie ne seront pas parfait, mais au moins pire ( ce qui est un choix judicieux compte tenu du temps impartit...
 

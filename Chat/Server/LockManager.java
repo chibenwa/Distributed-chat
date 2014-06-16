@@ -53,10 +53,10 @@ public class LockManager {
      */
     private ResourceVisitor resourceVisitor;
 
-
     /**
      * Basic constructor
      * @param _rBroadcastManager The broadcast manager that will
+     * @param _resourceVisitor Used to personalize access to resources using visitor design pattern.
      */
     public LockManager(RBroadcastManager _rBroadcastManager, ResourceVisitor _resourceVisitor) {
         rBroadcastManager = _rBroadcastManager;
@@ -73,7 +73,6 @@ public class LockManager {
     protected void startUsingRessource() {
         resourceVisitor.startUsingResource();
         isUsingResource = true;
-
     }
 
     /**
@@ -130,7 +129,6 @@ public class LockManager {
      * @param interServerMessage Message that holds the lock request broadcast.
      */
     protected void manageRequestBroadcast(InterServerMessage interServerMessage) {
-        // Message related
         Integer nsq = (Integer) interServerMessage.getMessage();
         SocketAddress q = interServerMessage.getIdentifier();
         dem.put(q, Math.max(nsq, dem.get(q)) );
