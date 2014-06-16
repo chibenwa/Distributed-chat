@@ -1,7 +1,8 @@
 package Chat.Server;
 
 import Chat.Netmessage.InterServerMessage;
-import Chat.Utils.LogicalJetonClock;
+import Chat.Utils.LogicalLockClock;
+import Chat.Utils.ResourceVisitor;
 import Chat.Utils.SendableHashMap;
 
 import java.io.Serializable;
@@ -38,7 +39,7 @@ public class LockManager {
     /**
      * The Token we are using.
      */
-    private LogicalJetonClock logicalJetonClock = null;
+    private LogicalLockClock logicalLockClock = null;
     /**
      * Our server identifier
      */
@@ -47,17 +48,19 @@ public class LockManager {
      * The dem hash map from the algorithm
      */
     private SendableHashMap dem = new SendableHashMap();
-
-
-
+    /**
+     * Used to personalize access to resources.
+     */
+    private ResourceVisitor resourceVisitor;
 
 
     /**
      * Basic constructor
      * @param _rBroadcastManager The broadcast manager that will
      */
-    public LockManager(RBroadcastManager _rBroadcastManager) {
+    public LockManager(RBroadcastManager _rBroadcastManager, ResourceVisitor _resourceVisitor) {
         rBroadcastManager = _rBroadcastManager;
+        resourceVisitor = _resourceVisitor;
     }
 
 
@@ -65,10 +68,12 @@ public class LockManager {
      * The method that start doing something.
      *
      * You should overwrite it in subclass ( to get something that really do something... )
-     * The task should be non blocking. It is your responsibility to use a thread.
+     * The task should be non blocking.
      */
-    public void startUsingRessource() {
+    protected void startUsingRessource() {
+        resourceVisitor.startUsingResource();
         isUsingResource = true;
+
     }
 
     /**
@@ -77,6 +82,7 @@ public class LockManager {
      * It is your responsibility to stop what you were doing... ( threads, etc... ).
      */
     public void stopUsingRessource() {
+        resourceVisitor.stopUsingResource();
         isUsingResource = false;
         releaseLock();
     }
@@ -105,15 +111,15 @@ public class LockManager {
      * Release our lock
      */
     protected void releaseLock() {
-        logicalJetonClock.put(ourIdentifier, nsp);
-        SocketAddress next = logicalJetonClock.getNext(dem,ourIdentifier);
+        logicalLockClock.put(ourIdentifier, nsp);
+        SocketAddress next = logicalLockClock.getNext(dem,ourIdentifier);
         if(next != null) {
             InterServerMessage message = new InterServerMessage(0, 3, 9);
-            message.setMessage( logicalJetonClock );
+            message.setMessage(logicalLockClock);
             message.setNeededData( next );
             rBroadcastManager.launchBroadcast(message);
             hasToken = false;
-            logicalJetonClock = null;
+            logicalLockClock = null;
         }
     }
 
@@ -143,7 +149,7 @@ public class LockManager {
             if (lockAsked) {
                 hasToken = true;
                 lockAsked = false;
-                logicalJetonClock = (LogicalJetonClock) interServerMessage.getMessage();
+                logicalLockClock = (LogicalLockClock) interServerMessage.getMessage();
                 startUsingRessource();
             } else {
                 System.out.println("Token received without asking");
@@ -170,7 +176,7 @@ public class LockManager {
      * We will not have the token
      */
     protected void destroyToken() {
-        logicalJetonClock = null;
+        logicalLockClock = null;
         lockAsked = false;
         isUsingResource = false;
         hasToken = false;
@@ -187,8 +193,8 @@ public class LockManager {
         isUsingResource = false;
         lockAsked = false;
         nsp = 0;
-        if(logicalJetonClock == null) {
-            logicalJetonClock = new LogicalJetonClock();
+        if(logicalLockClock == null) {
+            logicalLockClock = new LogicalLockClock();
         }
     }
 
@@ -196,10 +202,10 @@ public class LockManager {
      * Display our token ( if we have it )
      */
     private void diplayToken() {
-        if(logicalJetonClock == null) {
+        if(logicalLockClock == null) {
             System.out.println("We do not have the token");
         } else {
-            logicalJetonClock.display();
+            logicalLockClock.display();
         }
     }
 
@@ -244,7 +250,7 @@ public class LockManager {
      */
     protected void makeDemInit(ArrayList<Serializable> serversConnectedOnOurNetwork) {
         if( hasToken ) {
-            logicalJetonClock.generateFromServerList( serversConnectedOnOurNetwork, ourIdentifier );
+            logicalLockClock.generateFromServerList( serversConnectedOnOurNetwork);
         }
         demInit(serversConnectedOnOurNetwork);
     }

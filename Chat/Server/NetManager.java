@@ -3,7 +3,11 @@ package Chat.Server;
 import Chat.Netmessage.*;
 
 import Chat.Utils.ClientStruct;
+import Chat.Utils.LogResourceVisitor;
+import Chat.Utils.ResourceVisitor;
 import csc4509.FullDuplexMessageWorker;
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.*;
@@ -35,6 +39,14 @@ public class NetManager {
      * Server's identifier. Unique across network.
      */
   //  private SocketAddress p;
+    private static Logger logger = Logger.getLogger(NetManager.class);
+    private Boolean isLoggingEnable = false;
+    public void enableLogging() {
+        isLoggingEnable = true;
+    }
+    public void disableLogging() {
+        isLoggingEnable = false;
+    }
     private LockManager lockManager;
     // Thread safe
     /**
@@ -92,7 +104,8 @@ public class NetManager {
         echoServerListManager = new EchoServerListManager(this);
         echoPseudoListManager = new EchoPseudoListManager(this);
         cBroadcastManager = new CBroadcastManager(rBroadcastManager);
-        lockManager = new LockManager(rBroadcastManager);
+        ResourceVisitor resourceVisitor = new LogResourceVisitor(this);
+        lockManager = new LockManager(rBroadcastManager, resourceVisitor);
     }
 
     /**
@@ -448,6 +461,8 @@ public class NetManager {
                 if (cliStr.hasPseudo()) {
                     System.out.println("new message content " + rcv.getMessage());
                     state.broadcast(new ChatData(0, 2, rcv.getMessage(), cliStr.getPseudo()));
+                    if( isLoggingEnable )
+                        logger.info( cliStr.getPseudo() + " : " + rcv.getMessage() );
                     if( ! state.getStandAlone() ) {
                         sendCMessage(rcv.getMessage(), cliStr.getPseudo());
                     }
@@ -523,6 +538,8 @@ public class NetManager {
                 } else {
                     sendCPrivateMessage(rcv.getMessage(), rcv.getPseudo(), dest);
                 }
+                if( isLoggingEnable )
+                        logger.info( rcv.getPseudo() + " send to " + dest + " : " + rcv.getMessage());
                 break;
             case 13:
                 // Answer from our demand of servers list
@@ -735,6 +752,8 @@ public class NetManager {
                     chatData = new ChatData(0, 3, "", pseudo);
                     state.broadcast(chatData);
                     state.addPseudo((String) incomingMessage.getMessage());
+                    if( isLoggingEnable )
+                        logger.info( incomingMessage.getMessage()+ " joined the Chat.");
                 }
                 System.out.println();
                 break;
@@ -746,6 +765,8 @@ public class NetManager {
                 state.broadcast(chatData);
                 state.removePseudo((String) incomingMessage.getMessage());
                 System.out.println();
+                if( isLoggingEnable )
+                    logger.info(  incomingMessage.getMessage()+ " leaved the Chat.");
                 break;
             case 3:
                 // Client message forwarded
@@ -754,6 +775,8 @@ public class NetManager {
                 chatData = new ChatData(0,2,chatMessage.message, chatMessage.pseudo);
                 state.broadcast(chatData);
                 System.out.println();
+                if( isLoggingEnable )
+                    logger.info( chatMessage.pseudo+ " : " + chatMessage.message);
                 break;
             case 4:
                 // Server tells us it just joined our network
@@ -770,6 +793,8 @@ public class NetManager {
                     chdata.pseudoDestination = dest;
                     sendClientMessage(state.getClientByPseudo(dest), chdata, "Failed send private message to client directly connected ( after broadcast ) ");
                 }
+                if( isLoggingEnable )
+                        logger.info( chatMessage.pseudo + " send to " + dest + " : " + chatMessage.message );
                 break;
             case 6:
                 // The winner set up our server list
@@ -786,7 +811,7 @@ public class NetManager {
                 System.out.println("Job done, I now use master's list of pseudos");
                 break;
             case 8:
-                System.out.println("We received a lock notification  --___-- __---__");
+                System.out.println("We received a lock request  --___-- __---__");
                 lockManager.manageRequestBroadcast(incomingMessage);
                 break;
             case 9:
@@ -811,6 +836,8 @@ public class NetManager {
         message.setMessage( pseudo );
         cBroadcastManager.launchBroadcast(message);
         state.broadcast(new ChatData(0, 3, "", pseudo));
+        if( isLoggingEnable )
+            logger.info(  pseudo + " joined the Chat.");
     }
 
     /**
@@ -824,6 +851,8 @@ public class NetManager {
         message.setMessage( pseudo );
         cBroadcastManager.launchBroadcast(message);
         state.broadcast(new ChatData(0, 4, "", pseudo));
+        if( isLoggingEnable )
+            logger.info(  pseudo + " leaved the Chat.");
     }
 
     /**
@@ -839,7 +868,6 @@ public class NetManager {
         chatMessage.pseudo = pseudo;
         chatMessage.message = messageContent;
         message.setMessage(chatMessage);
-        //rBroadcastManager.launchBroadcast(message);
         cBroadcastManager.launchBroadcast(message);
     }
 

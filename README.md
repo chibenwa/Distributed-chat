@@ -1,10 +1,10 @@
 # Chat multiserveur
 
-Projet réalisé par Benoit Tellier, et disponible sous license GPL.
+Projet rÃ©alisÃ© par Benoit Tellier, et disponible sous license GPL.
 
-## Structure du dépot :
+## Structure du dÃ©pot :
 
-Notes sur les algorithmes utilisés, ainsi que réponse aux questions de TPs :
+Notes sur les algorithmes utilisÃ©s, ainsi que rÃ©ponse aux questions de TPs :
 
 	notes/*
 
@@ -16,30 +16,30 @@ Diagramme de classe ( vous pouvez le consulter [ici](https://www.gliffy.com/go/h
 
 	asset/*
 
-Le présent README :
+Le prÃ©sent README :
 
 	README.md
 
-## Fonctionnalités
+## FonctionnalitÃ©s
 
-Nous cherchons à réaliser un Chat distribué avec plusieurs serveurs. Nous souhaitons, autant que possible, que notre architecture supporte les changements de topologie aux niveau des serveurs ( ajout ou départ d'un ou plusieurs serveurs ).
+Nous cherchons Ã  rÃ©aliser un Chat distribuÃ© avec plusieurs serveurs. Nous souhaitons, autant que possible, que notre architecture supporte les changements de topologie aux niveau des serveurs ( ajout ou dï¿½part d'un ou plusieurs serveurs ).
 
-Note : Autant que possible indique que les solutions mises en place pour gérer les changements de topologie ne seront pas parfait, mais au moins pire ( ce qui est un choix judicieux compte tenu du temps impartit...
+Note : Autant que possible indique que les solutions mises en place pour gÃ©rer les changements de topologie ne seront pas parfait, mais au moins pire ( ce qui est un choix judicieux compte tenu du temps impartit...
 
-Un client pourra établir les actions suivantes :
+Un client pourra Ã©tablir les actions suivantes :
 
-  - Se connecter à un serveurs en spécifiant un pseudo
-  - Envoyer un message à l'ensemble des personnes présentent sur le Chat
-  - Obtenir la liste des clients connectés sur notre réseau
-  - Obtenir la liste des serveurs connectés
-  - Envoyer un message à un, et un seul des clients connectés ( message privé )
-  - Établir une connection de spare avec un autre serveur, sur laquelle on basculera en cas de nécéssité.
+  - Se connecter Ã  un serveurs en spÃ©cifiant un pseudo
+  - Envoyer un message Ã  l'ensemble des personnes prÃ©sentent sur le Chat
+  - Obtenir la liste des clients connectÃ©s sur notre rÃ©seau
+  - Obtenir la liste des serveurs connectÃ©s
+  - Envoyer un message Ã  un, et un seul des clients connectÃ©s ( message privÃ© )
+  - Ã©tablir une connection de spare avec un autre serveur, sur laquelle on basculera en cas de nÃ©cÃ©ssitÃ©.
 
 Nous ferons attention aussi aux points suivants :
 
-  - Quand un client peut dialoguer avec un client avec qui il ne pouvait pas dialoguer avant, il reçoit une notification indiquant qu'il peut dialoguer avec ce client
-  - Inversement quand on ne peut plus dialoguer avec un client, on reçoit un message nous l'indicant.
+  - Quand un client peut dialoguer avec un client avec qui il ne pouvait pas dialoguer avant, il reÃ§oit une notification indiquant qu'il peut dialoguer avec ce client
+  - Inversement quand on ne peut plus dialoguer avec un client, on reÃ§oit un message nous l'indicant.
 
-Les points mentionnés ci dessus surviennent lors des connections / déconnection de client ou de serveurs.
+Les points mentionnÃ©s ci dessus surviennent lors des connections / dÃ©connection de client ou de serveurs.
 
-Nous porterons aussi une attention particulière à la détection et au traitement des erreurs réseau ( on adopte un politique assez sévère... )
+Nous porterons aussi une attention particuliÃ¨re Ã  la dÃ©tection et au traitement des erreurs rÃ©seau ( on adopte un politique assez sÃ©vÃ¨re... )

@@ -9,14 +9,13 @@ import java.util.Map;
 /**
  * Created by benwa on 6/16/14.
  */
-public class LogicalJetonClock extends SendableHashMap {
-    public void generateFromServerList( ArrayList<Serializable> serversConnectedOnOurNetwork, SocketAddress ourIdentifier ) {
+public class LogicalLockClock extends SendableHashMap {
+    public void generateFromServerList( ArrayList<Serializable> serversConnectedOnOurNetwork ) {
         map.clear();
         for(Serializable serializable : serversConnectedOnOurNetwork) {
             SocketAddress serverIdentifier = (SocketAddress) serializable;
             put(serverIdentifier, 0);
         }
-       // put(ourIdentifier, 1); // Because we have the Jeton at the beginning
     }
 
     public SocketAddress getNext(SendableHashMap ourDemands, SocketAddress ourSocketAddress) {
