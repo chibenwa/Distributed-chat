@@ -102,3 +102,10 @@ s'y preterai bien...
 ### Système de log
 
 J'ai ajouté un système de gestion des logs. Je me suis appuyé sur **log4j** ( http://logging.apache.org/log4j/1.2/ ).
+
+### Changement de topologie
+
+Tous les verrous sont levés en cas de changement de topologie. Il s'agit d'une contrainte assez forte. Une autre 
+stratégie plus maline consisterais à vérifier que nous avons bien un ( et un seul ) jeton dans notre réseau. Si nous
+n'en avons aucun, il suffit au serveur élu d'en regénérer un. Si il y en a plusieur, le serveur élu peut demander 
+la destruction de certain jetons afin de ramener le compte à un. Je n'ai pas eu le temps d'implémenter ce mécanisme.
