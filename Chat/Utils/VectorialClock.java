@@ -1,8 +1,6 @@
 package Chat.Utils;
 
-import java.io.Serializable;
 import java.net.SocketAddress;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 

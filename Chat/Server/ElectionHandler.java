@@ -307,9 +307,6 @@ public class ElectionHandler {
         electionMutex.unlock();
     }
 
-
-
-
     /**
      * The goal of the election is to send messages to the elected process but we may have no direct way to it.
      * One solution is to pass our message to the **father** ClientStruct, that will forward it.
@@ -321,16 +318,26 @@ public class ElectionHandler {
         return father;
     }
 
+    /**
+     * Allow us to get the identifier of the winner server.
+     * @return the identifier of the winner server
+     */
     public SocketAddress getWin() {
         return win;
     }
 
+    /**
+     * Actions to trigger on electoral victories
+     */
     private void winActions() {
         netManager.launchPseudoDiscovery();
         netManager.launchServerDiscovery();
         netManager.getLockManager().regenerateToken( );
     }
 
+    /**
+     * Actions to perform in electoral loose.
+     */
     private void looseAction() {
         netManager.getLockManager().destroyToken(  );
     }
