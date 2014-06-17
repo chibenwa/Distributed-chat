@@ -91,6 +91,7 @@ public class InterServerMessage extends NetMessage {
      *              Type 8 : Diffusion of a MUTEX request
      *              Type 9 : Somebody give us the token
      *              Type 10 : Shutdown Request
+     *              Type 11 : Ending detection
      */
 
     public InterServerMessage(int _seq, int _type, int _subType) {

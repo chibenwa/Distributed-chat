@@ -42,6 +42,10 @@ public class State {
      * The list of connected servers ( on our network )
      */
     private ArrayList<SocketAddress> serverConnectedOnOurNetwork;
+    /**
+     * Our server identifier
+     */
+    private SocketAddress identifier;
 
     /**
      * Basic constructor
@@ -52,6 +56,24 @@ public class State {
         serverStrs = new ArrayList<ClientStruct>();
         pseudoList = new HashMap<String, Boolean>();
         serverConnectedOnOurNetwork = new ArrayList<SocketAddress>();
+    }
+
+    /**
+     * Set our identifier
+     * @param _identifier Our server identifier.
+     */
+    public void setIdentifier(SocketAddress _identifier) {
+        if( identifier == null ) {
+            identifier = _identifier;
+        }
+    }
+
+    /**
+     * Get our identifier
+     * @return Our server identifier
+     */
+    public SocketAddress getIdentifier() {
+        return identifier;
     }
 
     /**
@@ -539,5 +561,11 @@ public class State {
         return res;
     }
 
+    public SocketAddress getFollowingTarget() {
+        int myPosition = serverConnectedOnOurNetwork.indexOf(identifier);
+        myPosition++;
+        myPosition%= serverConnectedOnOurNetwork.size();
+        return serverConnectedOnOurNetwork.get(myPosition);
+    }
 
 }

@@ -139,6 +139,7 @@ public class NetManager {
             echoServerListManager.setP(add);
             echoPseudoListManager.setP(add);
             lockManager.setOurAddress(add);
+            state.setIdentifier(add);
         } catch (IOException se) {
             System.out.println("Failed to create server");
             se.printStackTrace();
