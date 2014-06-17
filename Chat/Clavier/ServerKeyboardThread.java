@@ -86,6 +86,9 @@ public class ServerKeyboardThread extends KeyboardThread {
             case 11:
                 netManager.stopIsingResource();
                 break;
+            case 12:
+                netManager.shutdownOurInfrastructure();
+                break;
             default:
                 System.out.println("Command unrecognise...");
                 break;
@@ -111,6 +114,7 @@ public class ServerKeyboardThread extends KeyboardThread {
         System.out.println("9 : Display lock state");
         System.out.println("10 : Lock");
         System.out.println("11 : Unlock");
+        System.out.println("12 : Shutdown our infrastructure");
         System.out.println();
     }
 

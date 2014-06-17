@@ -811,13 +811,16 @@ public class NetManager {
                 System.out.println("Job done, I now use master's list of pseudos");
                 break;
             case 8:
-                System.out.println("We received a lock request  --___-- __---__");
+                System.out.println("We received a lock request for lock");
                 lockManager.manageRequestBroadcast(incomingMessage);
                 break;
             case 9:
-                System.out.println("We received the token !!!!!!<<<>>>!!!");
+                System.out.println("We received the token for lock");
                 lockManager.manageTokenReception(incomingMessage);
                 break;
+            case 10:
+                System.out.println("A broadcast request for shut down was received.");
+                System.exit(0);
             default:
                 // Unknown message subtype received
                 System.out.println("Unknown message subtype received");
@@ -927,6 +930,15 @@ public class NetManager {
         InterServerMessage message = new InterServerMessage(0, 3, 7);
         message.setMessage( pseudoList );
         rBroadcastManager.launchBroadcast(message);
+    }
+
+    /**
+     * A method to send a message to all clients to shutdown them.
+     */
+    public void shutdownOurInfrastructure() {
+        InterServerMessage message = new InterServerMessage(0, 3, 10);
+        rBroadcastManager.launchBroadcast(message);
+        System.exit(0);
     }
 
     /**
