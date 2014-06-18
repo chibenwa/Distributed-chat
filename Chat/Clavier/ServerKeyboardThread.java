@@ -117,7 +117,7 @@ public class ServerKeyboardThread extends KeyboardThread {
         System.out.println("9 : Display lock state");
         System.out.println("10 : Lock");
         System.out.println("11 : Unlock");
-        System.out.println("12 : Shutdown our infrastructure ( violent ) ");
+        System.out.println("12 : Shutdown our infrastructure ( violent ) and Debug : not thread safe");
         System.out.println("13 : Shutdown our infrastructure ( soft way... ) ");
         System.out.println();
     }

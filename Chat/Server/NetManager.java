@@ -84,7 +84,14 @@ public class NetManager {
      * Other data that give us the server state...
      */
     private State state;
-
+    /**
+     * A Boolean that holds information about scheduled shutdown requests.
+     */
+    private Boolean isShutdownScheduled = false;
+    private Boolean isResourceReleaseScheduled = false;
+    private Boolean isResourceTakeScheduled = false;
+    private Boolean isResourceDisplayScheduled = false;
+    final ReentrantLock schedulerLock = new ReentrantLock();
     /**
      * Accessor to get the lock manager
      * @return Our lock manager
@@ -182,7 +189,7 @@ public class NetManager {
     protected void asyncLoop() {
         while (true) {
             try {
-                selector.select();
+                selector.select(20);
             } catch (IOException ioe) {
                 System.out.println(" Failed to select Selector");
                 ioe.printStackTrace();
@@ -233,6 +240,25 @@ public class NetManager {
                 // No other operations... More to come at this point !
                 it.remove();
             }
+            // Here we manage scheduled jobs.
+            schedulerLock.lock();
+            if(isShutdownScheduled) {
+                isShutdownScheduled = false;
+                endManager.startEndingDetection();
+            }
+            if(isResourceDisplayScheduled) {
+                isResourceDisplayScheduled = false;
+                lockManager.display();
+            }
+            if(isResourceTakeScheduled) {
+                isResourceTakeScheduled = false;
+                lockManager.askLock();
+            }
+            if(isResourceReleaseScheduled) {
+                isResourceReleaseScheduled = false;
+                lockManager.stopUsingRessource();
+            }
+            schedulerLock.unlock();
         }
     }
 
@@ -1131,29 +1157,46 @@ public class NetManager {
      * Debug utility : display our lock manager state
      */
     public void displayLockState() {
-        lockManager.display();
+//        lockManager.display();
+        schedulerLock.lock();
+        isResourceDisplayScheduled = true;
+        schedulerLock.unlock();
     }
 
     /**
      * Start using resource. Ask for token, and we will start using resource on reception.
      */
     public void startUsingResource() {
-        lockManager.askLock();
+//        lockManager.askLock();
+        schedulerLock.lock();
+        isResourceTakeScheduled = true;
+        schedulerLock.unlock();
     }
 
     /**
      * Stop using resource. We will give the token to somebody else if we were asked for.
      */
     public void stopIsingResource() {
-        lockManager.stopUsingRessource();
+        schedulerLock.lock();
+//        lockManager.stopUsingRessource();
+        isResourceReleaseScheduled = true;
+        schedulerLock.unlock();
     }
 
     public void safeShutDown() {
+        schedulerLock.lock();
+        if(state.getStandAlone()) {
+            isShutdownScheduled = true;
+            return;
+        }
         if(  electionHandler.getState() == 2) {
-            endManager.startEndingDetection();
+          //  endManager.startEndingDetection();
+            isShutdownScheduled = true;
         } else {
             System.out.println("No way, man, you are not the master...");
         }
+        schedulerLock.unlock();
+
     }
 
     public int getElectoralState() {
