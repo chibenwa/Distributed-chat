@@ -596,7 +596,13 @@ public class NetManager {
             case 13:
                 // Answer from our demand of servers list
                 System.out.println("Demand of list of server");
-                String serverListString = state.getServerConnectedOnOurNetworkString();
+
+                String serverListString;
+                if( state.getStandAlone() ) {
+                    serverListString = state.getIdentifier().toString();
+                } else {
+                    serverListString = state.getServerConnectedOnOurNetworkString();
+                }
                 sendClientMessage(cliStr,new ChatData(0,13,serverListString),"Error sending answer to client");
                 break;
             case 42:

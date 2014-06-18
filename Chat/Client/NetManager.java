@@ -19,66 +19,46 @@ import java.util.concurrent.locks.ReentrantLock;
  * A bad ass Net manager that will manage network on client node.
  */
 public class NetManager {
-
     /**
      *  Number of time we can not obtain our content. It means an error.
      */
-
     private int nbNullPointerException = 0;
-
     /**
      * The connection we are now using
      */
-
     private FullDuplexMessageWorker full;
-
     /**
      * If set a spare connection we can switch to in case of server fault.
      */
-
     private FullDuplexMessageWorker fullDuplexMessageWorkerSpare;
-
     /**
      * A boolean that indicates if a spare connection is set
      */
-
     private Boolean isSpareSet = false;
-
     /**
      * Tells us if the client is performing a spare switching transaction. Used by our spare switching trivial algorithm.
      */
-
     private Boolean isInSpareTansaction = false;
-
     /**
      * Tells us if the login allocation is made
      */
-
     private Boolean hasCompletedLogin = false;
-
     /**
      * Tells us if we get a response to the login request we made to the server.
      */
-
     private Boolean hasLoginResponse = false;
-
     /**
      * Pseudo set for spare connection
      */
-
     private String sparePseudo = "";
-
     /**
      * Tells if te client made a demand of user list.
      */
-
     private Boolean waitingUserList = false;
-
     /**
      * A lock to protect sensible data of concurrent access
      */
     final ReentrantLock clientStateLock = new ReentrantLock();
-
     /**
      *
      *
@@ -187,13 +167,14 @@ public class NetManager {
                     if (waitingUserList) {
                         System.out.println(chdata.getDate() + " Peoples on the chat : " + chdata.getMessage());
                         waitingUserList = false;
+                        clientStateLock.unlock();
                     } else {
                         // Inform the server he made a mistake : we never asked for what he provided us...
                         ChatData informServer = new ChatData(0, 42, "");
                         informServer.setErrorCode(9);
+                        clientStateLock.unlock();
                         sendMessage(informServer, "Problem telling the server we didn't need the user list");
                     }
-                    clientStateLock.unlock();
                     break;
                 case 6:
                 case 42:
@@ -271,12 +252,14 @@ public class NetManager {
      */
 
     private void sendMessage(ChatData chatData, String ioErrorMessage) {
+        clientStateLock.lock();
         try {
             full.sendMsg(0, chatData);
         } catch (IOException ioe) {
             System.out.println(ioErrorMessage);
             manageIOError();
         }
+        clientStateLock.unlock();
     }
 
     /**
@@ -298,6 +281,7 @@ public class NetManager {
      */
 
     public void establishSpareConnection(String ip, int _port, String _pseudo) {
+        clientStateLock.lock();
         InetAddress add;
         try {
             add = InetAddress.getByName(ip);
@@ -322,6 +306,7 @@ public class NetManager {
         }
         isSpareSet = true;
         sparePseudo = _pseudo;
+        clientStateLock.unlock();
     }
 
     /**
@@ -329,6 +314,7 @@ public class NetManager {
      */
 
     public void switchToSpareConnection() {
+        clientStateLock.lock();
         if( isSpareSet) {
             isInSpareTansaction = true;
             isSpareSet = false;
@@ -359,6 +345,7 @@ public class NetManager {
                 System.out.println("Wrong message type not expected");
             }
         }
+        clientStateLock.unlock();
     }
 
     /**
