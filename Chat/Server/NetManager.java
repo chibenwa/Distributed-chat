@@ -189,7 +189,7 @@ public class NetManager {
     protected void asyncLoop() {
         while (true) {
             try {
-                selector.select(20);
+                selector.select(10);
             } catch (IOException ioe) {
                 System.out.println(" Failed to select Selector");
                 ioe.printStackTrace();
