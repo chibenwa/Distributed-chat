@@ -3,6 +3,8 @@ package Chat.Server;
 import Chat.Netmessage.InterServerMessage;
 
 import java.net.SocketAddress;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -47,6 +49,11 @@ public class EndManager {
      * To know if we are in charge of ending detection
      */
     private Boolean inCharge = true;
+    /**
+     * Timer used to schedule token sending
+     */
+    final Timer timer = new Timer();
+
     /**
      * Basic constructor
      * @param _netManager NetManager we will use to retrieve server list
@@ -132,6 +139,9 @@ public class EndManager {
         }
     }
 
+    /**
+     * Start the detection of ending.
+     */
     public void startEndingDetection() {
         if( netManager.getState().getStandAlone() ) {
             // We are stand alone. We can shutdown.
@@ -148,14 +158,32 @@ public class EndManager {
         }
     }
 
+    /**
+     * Send a token
+     * @param _color Color of the token
+     * @param _diff Difference between received and sent message hold in the token
+     * @param _nextP Next target for token
+     */
     private void sendToken(int _color, int _diff, SocketAddress _nextP) {
-        InterServerMessage interServerMessage = new InterServerMessage(0,3,11);
-        interServerMessage.setElectionWinner( _nextP );
-        interServerMessage.setMessage( new Integer(_color));
-        interServerMessage.setNeededData( new Integer(_diff));
-        rBroadcastManager.launchBroadcast(interServerMessage);
+        final int myCol = _color;
+        final SocketAddress myNext = _nextP;
+        final int myDiff = _diff;
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                InterServerMessage interServerMessage = new InterServerMessage(0,3,11);
+                interServerMessage.setElectionWinner( myNext );
+                interServerMessage.setMessage( new Integer(myCol));
+                interServerMessage.setNeededData( new Integer(myDiff));
+                rBroadcastManager.launchBroadcast(interServerMessage);
+            }
+        };
+        timer.schedule(timerTask,10);
     }
 
+    /**
+     * Reset our end Manager
+     */
     protected void reset() {
         state = 0;
         color = 0;
