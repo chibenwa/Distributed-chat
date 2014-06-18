@@ -73,6 +73,9 @@ public class CBroadcastManager {
         ourVectorialClock.put(ourIdentifier, ourVectorialClock.get(ourIdentifier) + 1);
         message.setNeededData(ourVectorialClock);
         rBroadcastManager.launchBroadcast(message);
+        for (int i = 0; i < rBroadcastManager.netManager.getState().getNbConnectedServers(); i++) {
+            rBroadcastManager.netManager.endManager.notifyUserSend();
+        }
     }
 
     /**

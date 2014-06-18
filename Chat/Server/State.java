@@ -568,4 +568,9 @@ public class State {
         return serverConnectedOnOurNetwork.get(myPosition);
     }
 
+    public void setClientsInactive() {
+        for( ClientStruct clientStruct : cliStrs) {
+            clientStruct.setInactive();
+        }
+    }
 }

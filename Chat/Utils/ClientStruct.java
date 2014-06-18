@@ -28,11 +28,41 @@ public class ClientStruct {
      * Is pseudo set ?
      */
     private Boolean pseudoSet = false;
+    /**
+     * Indicates if this client is active.
+     * We can not receive messages from inactive clients
+     */
+    private Boolean active = true;
 
-    private final ReentrantLock writeLock = new ReentrantLock();;
+    /**
+     * Use this to know if a client is active
+     * @return True if the client is active, false in other cases.
+     */
+    public Boolean getActive() {
+        return active;
+    }
+
+    /**
+     * Switch client to inactive mode.
+     */
+    public void setInactive() {
+        active = false;
+    }
+    /**
+     * A write lock to protect our channel from concurrent write
+     */
+    private final ReentrantLock writeLock = new ReentrantLock();
+
+    /**
+     * Lock our channel.
+     */
     public void lock() {
         writeLock.lock();
     }
+
+    /**
+     * Unlock our channel
+     */
     public void unlock() {
         writeLock.unlock();
     }

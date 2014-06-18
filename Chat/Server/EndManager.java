@@ -8,9 +8,6 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Created by benwa on 6/17/14.
  *
- * TODO : integrate in our code NetManager
- * TODO : NetManager should disconnect client on sending and first receiving token
- * TODO : console logs every where !
  * TODO : safely demand ending from keyboard input
  */
 public class EndManager {
@@ -49,7 +46,7 @@ public class EndManager {
     /**
      * To know if we are in charge of ending detection
      */
-    private Boolean inCharge = false;
+    private Boolean inCharge = true;
     /**
      * Basic constructor
      * @param _netManager NetManager we will use to retrieve server list
@@ -93,28 +90,45 @@ public class EndManager {
      */
     public void TockenReception(InterServerMessage interServerMessage) {
         if( ! endDemanded ) {
+            System.out.println("Shutdown requested...");
             endDemanded = true;
+            netManager.getState().setClientsInactive();
+        }
+        if( state == 1) {
+            System.out.println("Euh man, we are active");
         }
         if( netManager.getState().getIdentifier().toString().compareTo( interServerMessage.getElectionWinner().toString() ) == 0 ) {
             // This message is addressed to us
             int messageColor = (Integer)interServerMessage.getMessage();
             int messageDiff = (Integer) interServerMessage.getNeededData();
             if( inCharge ) {
+                System.out.println("We are in charge : color : " + color + ", Message color : " + messageColor + ", messageDiff : " + messageDiff
+                + ", messageCount : " + messageCount);
                 // p = p0
                 if( color ==  0 && messageColor == 0 && messageCount + messageDiff == 0) {
                     // Here we can stop with no fear.
+                    System.out.println("We can stop with no fear");
+                    System.out.println("Next : " +netManager.getState().getFollowingTarget() );
                     netManager.shutdownOurInfrastructure();
                 } else {
+                    System.out.println("Can not stop. Sending new token.");
+                    System.out.println("Next : " +netManager.getState().getFollowingTarget() );
                     sendToken( 0, 0, netManager.getState().getFollowingTarget());
                 }
             } else {
                 if( color == 0 ) {
+                    System.out.println("Token received. Color white : Message color : " + messageColor + ", messageDiff : " + messageDiff
+                            + ", messageCount : " + messageCount);
+                    System.out.println("Next : " +netManager.getState().getFollowingTarget() );
                     sendToken(messageColor, messageDiff + messageCount, netManager.getState().getFollowingTarget());
                 } else {
+                    System.out.println("Token received. Color black");
                     sendToken(1, messageDiff + messageCount, netManager.getState().getFollowingTarget());
                 }
             }
             color = 0;
+        } else {
+            System.out.println("Message not for us. For : " + interServerMessage.getElectionWinner() +" But we are : " + netManager.getState().getIdentifier() );
         }
     }
 
@@ -126,16 +140,30 @@ public class EndManager {
         if( inCharge ) {
             if(! endDemanded ) {
                 endDemanded = true;
+                netManager.getState().setClientsInactive();
                 sendToken( 0, 0, netManager.getState().getFollowingTarget());
+                System.out.println("Sending first token.");
+                System.out.println("Next : " +netManager.getState().getFollowingTarget() );
             }
         }
     }
 
     private void sendToken(int _color, int _diff, SocketAddress _nextP) {
-        InterServerMessage interServerMessage = new InterServerMessage(0,3,12);
+        InterServerMessage interServerMessage = new InterServerMessage(0,3,11);
         interServerMessage.setElectionWinner( _nextP );
         interServerMessage.setMessage( new Integer(_color));
         interServerMessage.setNeededData( new Integer(_diff));
         rBroadcastManager.launchBroadcast(interServerMessage);
+    }
+
+    protected void reset() {
+        state = 0;
+        color = 0;
+        endDemanded = false;
+        messageCount = 0;
+        inCharge = netManager.getElectoralState() == 2;
+        if(netManager.getState().getStandAlone()) {
+            inCharge = true;
+        }
     }
 }

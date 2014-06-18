@@ -36,19 +36,17 @@ public class NetManager {
      */
     private ServerSocketChannel ssc;
     /**
-     * Server's identifier. Unique across network.
+     * A tool for logging our conversation
      */
-  //  private SocketAddress p;
     private static Logger logger = Logger.getLogger(NetManager.class);
+    /**
+     * Do we have to log?
+     */
     private Boolean isLoggingEnable = false;
-    public void enableLogging() {
-        isLoggingEnable = true;
-    }
-    public void disableLogging() {
-        isLoggingEnable = false;
-    }
+    /**
+     * A class that manage safely a lock across our server network.
+     */
     private LockManager lockManager;
-    // Thread safe
     /**
      * Election handler that manages elections
      */
@@ -70,6 +68,10 @@ public class NetManager {
      */
     private EchoPseudoListManager echoPseudoListManager;
     /**
+     * A class that provides end detection for our application.
+     */
+    protected EndManager endManager;
+    /**
      * A lock to protect our use of the selector.
      */
     final ReentrantLock selectorLock = new ReentrantLock();
@@ -83,8 +85,26 @@ public class NetManager {
      */
     private State state;
 
+    /**
+     * Accessor to get the lock manager
+     * @return Our lock manager
+     */
     protected LockManager getLockManager() {
         return lockManager;
+    }
+
+    /**
+     * Enable logging
+     */
+    public void enableLogging() {
+        isLoggingEnable = true;
+    }
+
+    /**
+     * Disable logging
+     */
+    public void disableLogging() {
+        isLoggingEnable = false;
     }
 
     /**
@@ -106,6 +126,7 @@ public class NetManager {
         cBroadcastManager = new CBroadcastManager(rBroadcastManager);
         ResourceVisitor resourceVisitor = new LogResourceVisitor(this);
         lockManager = new LockManager(rBroadcastManager, resourceVisitor);
+        endManager = new EndManager(this, rBroadcastManager);
     }
 
     /**
@@ -159,13 +180,11 @@ public class NetManager {
      */
 
     protected void asyncLoop() {
-        int loopNB = 0;
         while (true) {
-            loopNB++;
             try {
                 selector.select();
             } catch (IOException ioe) {
-                System.out.println(loopNB + " Failed to select Selector");
+                System.out.println(" Failed to select Selector");
                 ioe.printStackTrace();
                 return;
             }
@@ -175,12 +194,12 @@ public class NetManager {
                 SelectionKey key = (SelectionKey) it.next();
                 if (key.isAcceptable()) {
                     // We have a new client opening a connection.
-                    System.out.println(loopNB + " New connection");
+                    System.out.println(" New connection");
                     SocketChannel sc;
                     try {
                         sc = ssc.accept();
                     } catch (IOException ioe) {
-                        System.out.println(loopNB + " Failed to open new connexion in main loop");
+                        System.out.println(" Failed to open new connexion in main loop");
                         ioe.printStackTrace();
                         return;
                     }
@@ -277,7 +296,9 @@ public class NetManager {
             return;
         }
         // Now specify to the server that WE ARE A SERVER ...
-        sendInterServerMessage(clientStruct, new InterServerMessage(0,0), "Can not send a basic Hello I am a server ! " );
+        InterServerMessage response = new InterServerMessage(0,0);
+        response.setElectionWinner( electionHandler.getWin() );
+        sendInterServerMessage(clientStruct, response, "Can not send a basic Hello I am a server ! " );
     }
 
     /**
@@ -317,7 +338,7 @@ public class NetManager {
      */
 
     protected void sendInterServerMessage( ClientStruct clientStruct,  InterServerMessage mes, String ioErrorMessage ) {
-        mes.setElectionWinner( electionHandler.getWin() );
+        //mes.setElectionWinner( electionHandler.getWin() );
         try {
             clientStruct.lock();
             clientStruct.getFullDuplexMessageWorker().sendMsg(2, mes);
@@ -401,6 +422,10 @@ public class NetManager {
      */
 
     private  void handleClientMessage(ClientStruct cliStr) {
+        if(!cliStr.getActive()) {
+            System.out.println("Client is inactive");
+            return;
+        }
         FullDuplexMessageWorker duplexMessageWorker = cliStr.getFullDuplexMessageWorker();
         ChatData localChatData;
         ChatData rcv;
@@ -598,6 +623,7 @@ public class NetManager {
                     System.out.println("Request for server connection received");
                     state.addServer(cliStr);
                     InterServerMessage response = new InterServerMessage(0, 1);
+                    response.setElectionWinner( electionHandler.getWin() );
                     sendInterServerMessage(cliStr, response, "Can not send ack for a server connection established");
                 }
                 break;
@@ -641,6 +667,7 @@ public class NetManager {
                 }
                 break;
             case 5 :
+                endManager.notifyUserReceive();
                 // C diffusion
                 System.out.println("C broadcast detected");
                 if( cBroadcastManager.manageInput( incomingMessage) ) {
@@ -651,6 +678,8 @@ public class NetManager {
                         manageServerMessageSubtype(acceptedMessage);
                     }
                 }
+                // We have ended to manage our
+                endManager.inputProcessEnded();
                 break;
             case 6 :
                 System.out.println("Working with retrieve clients requests");
@@ -822,6 +851,13 @@ public class NetManager {
             case 10:
                 System.out.println("A broadcast request for shut down was received.");
                 System.exit(0);
+                break;
+            case 11 :
+                System.out.println();
+                System.out.println();
+                System.out.println("Ending detection received : ");
+                endManager.TockenReception(incomingMessage);
+                break;
             default:
                 // Unknown message subtype received
                 System.out.println("Unknown message subtype received");
@@ -1110,5 +1146,17 @@ public class NetManager {
      */
     public void stopIsingResource() {
         lockManager.stopUsingRessource();
+    }
+
+    public void safeShutDown() {
+        if(  electionHandler.getState() == 2) {
+            endManager.startEndingDetection();
+        } else {
+            System.out.println("No way, man, you are not the master...");
+        }
+    }
+
+    public int getElectoralState() {
+        return electionHandler.getState();
     }
 }

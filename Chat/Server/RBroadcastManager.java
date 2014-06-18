@@ -20,7 +20,7 @@ public class RBroadcastManager implements BroadcastManager{
     /**
      * The netManager we will use to send messages
      */
-    private NetManager netManager;
+    protected NetManager netManager;
     /**
      * Our server identifier
      */
@@ -56,6 +56,13 @@ public class RBroadcastManager implements BroadcastManager{
             message.setIdentifier(identifier);
             System.out.println("First time we have this message. Accept it.");
             netManager.getState().broadcastInterServerMessage(message);
+            // Ugly hack... ... ...
+            if(message.getType() == 5) {
+                // User message. Notify that we send it.
+                for (int i = 0; i < netManager.getState().getNbConnectedServers(); i++) {
+                    netManager.endManager.notifyUserSend();
+                }
+            }
             System.out.println("Broadcast done for " + message.getIdentifier() + " " + message.getSeq() );
             return true;
         }

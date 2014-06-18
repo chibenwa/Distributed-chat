@@ -333,6 +333,7 @@ public class ElectionHandler {
         netManager.launchPseudoDiscovery();
         netManager.launchServerDiscovery();
         netManager.getLockManager().regenerateToken( );
+        netManager.endManager.reset();
     }
 
     /**
@@ -340,6 +341,7 @@ public class ElectionHandler {
      */
     private void looseAction() {
         netManager.getLockManager().destroyToken(  );
+        netManager.endManager.reset();
     }
 
 }
