@@ -67,6 +67,7 @@ public class NetManager {
      * An attribute that will be used to retrieve connected pseudo list across the network
      */
     private EchoPseudoListManager echoPseudoListManager;
+    private EchoTokenListManager echoTokenListManager;
     /**
      * A class that provides end detection for our application.
      */
@@ -134,6 +135,7 @@ public class NetManager {
         ResourceVisitor resourceVisitor = new LogResourceVisitor(this);
         lockManager = new LockManager(rBroadcastManager, resourceVisitor);
         endManager = new EndManager(this, rBroadcastManager);
+        echoTokenListManager = new EchoTokenListManager(this);
     }
 
     /**
@@ -166,6 +168,7 @@ public class NetManager {
             cBroadcastManager.setOurAddress(add);
             echoServerListManager.setP(add);
             echoPseudoListManager.setP(add);
+            echoTokenListManager.setP(add);
             lockManager.setOurAddress(add);
             state.setIdentifier(add);
         } catch (IOException se) {
@@ -456,13 +459,14 @@ public class NetManager {
         ChatData localChatData;
         ChatData rcv;
         try {
-            rcv = (ChatData) duplexMessageWorker.getData();
+            Serializable serializable = duplexMessageWorker.getData();
+            if(serializable == null) {
+                System.out.println(" Failed to receive message");
+                manageIOErrorOnClientConnection( cliStr );
+                return;
+            }
+            rcv = (ChatData) serializable;
         } catch (IOException ioe) {
-            // We removed the fail client from our pool of clients...
-            System.out.println(" Failed to receive message");
-            manageIOErrorOnClientConnection( cliStr );
-            return;
-        } catch ( NullPointerException npe) {
             // We removed the fail client from our pool of clients...
             System.out.println(" Failed to receive message");
             manageIOErrorOnClientConnection( cliStr );
@@ -629,14 +633,15 @@ public class NetManager {
         // Here we are synchronising messages on our ( future ) distributed Chat
         InterServerMessage incomingMessage;
         try{
-            incomingMessage = (InterServerMessage) fdmw.getData();
+            Serializable serializable = fdmw.getData();
+            if( serializable == null) {
+                System.out.println("Can not retrieve InterServerMessage we are receiving 2");
+                manageIOErrorOnServerConnection(cliStr);
+                return;
+            }
+            incomingMessage = (InterServerMessage) serializable;
         } catch( IOException ioe) {
             System.out.println("Can not retrieve InterServerMessage we are receiving");
-            manageIOErrorOnServerConnection(cliStr);
-            return;
-        }
-        catch (NullPointerException npe) {
-            System.out.println("Can not retrieve InterServerMessage we are receiving 2");
             manageIOErrorOnServerConnection(cliStr);
             return;
         }
@@ -685,6 +690,7 @@ public class NetManager {
                     System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Launching election on server disconnection");
                     electionHandler.launchElection();
                 } else {
+                    System.out.println("A server leaved us and we switched to stand alone...");
                     state.switchToStandAlone();
                 }
 
@@ -739,6 +745,28 @@ public class NetManager {
                     launchRServerSet(res);
                     reInitVectorialClock();
                     lockManager.makeDemInit(res);
+                }
+                break;
+            case 8 :
+                System.out.println("Working with token retrieve request ");
+                ArrayList<Serializable> resu = echoTokenListManager.processInput(incomingMessage, cliStr);
+                if( resu != null ) {
+                    System.out.println(" ############################################# ");
+                    System.out.println( resu.size() );
+                    System.out.println(" ############################################# ");
+                    if(resu.size() == 0) {
+                        lockManager.createToken();
+                        break;
+                    }
+                    if(resu.size() == 1) {
+                        break;
+                    }
+                    if(resu.size() == 2) {
+                        System.out.println("Bouillla !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                        break;
+                    }
+                    launchRServerSet(resu);
+
                 }
                 break;
             case 42:
@@ -987,6 +1015,7 @@ public class NetManager {
 
     public void launchPseudoDiscovery() {
         echoPseudoListManager.launchEcho();
+        echoTokenListManager.launchEcho();
     }
 
     /**
@@ -1092,6 +1121,7 @@ public class NetManager {
             } else {
                 System.out.println("Switching standalone");
                 state.switchToStandAlone();
+                electionHandler.switchStandAlone();
                 if( state.getStandAlone() ) {
                     System.out.println("Seul et célibataire !");
                 }

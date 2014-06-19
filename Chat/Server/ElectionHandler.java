@@ -332,7 +332,7 @@ public class ElectionHandler {
     private void winActions() {
         netManager.launchPseudoDiscovery();
         netManager.launchServerDiscovery();
-        netManager.getLockManager().regenerateToken( );
+     //   netManager.getLockManager().regenerateToken( );
         netManager.endManager.reset();
     }
 
@@ -340,8 +340,11 @@ public class ElectionHandler {
      * Actions to perform in electoral loose.
      */
     private void looseAction() {
-        netManager.getLockManager().destroyToken(  );
+     //   netManager.getLockManager().destroyToken(  );
         netManager.endManager.reset();
     }
 
+    public void switchStandAlone() {
+        win = null;
+    }
 }

@@ -78,6 +78,7 @@ public class InterServerMessage extends NetMessage {
      *              Type 5 : C diffusion
      *              Type 6 : Echo wave pseudos
      *              Type 7 : Echo wave servers
+     *              Type 8 : Echo wave tokens
      *              Type 42 : Error
      * @param _subType
      *              Type 0 : no SubType

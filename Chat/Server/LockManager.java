@@ -110,6 +110,10 @@ public class LockManager {
      * Release our lock
      */
     protected void releaseLock() {
+        if(logicalLockClock == null ) {
+            System.out.println("You do not have the token...");
+            return;
+        }
         logicalLockClock.put(ourIdentifier, nsp);
         SocketAddress next = logicalLockClock.getNext(dem,ourIdentifier);
         if(next != null) {
@@ -122,7 +126,14 @@ public class LockManager {
         }
     }
 
+    public Boolean getHasToken( ) {
+        return logicalLockClock != null;
+    }
 
+    public void createToken() {
+        hasToken = true;
+        logicalLockClock = new LogicalLockClock();
+    }
 
     /**
      * Manage input. Call this for Lock Request Broadcast.

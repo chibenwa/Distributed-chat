@@ -10,7 +10,9 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Created by benwa on 6/17/14.
  *
- * TODO : safely demand ending from keyboard input
+ * License : GLP 2.0
+ *
+ * End detection and safe shutdown of servers.
  */
 public class EndManager {
     /**

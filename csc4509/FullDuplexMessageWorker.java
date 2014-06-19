@@ -229,6 +229,9 @@ public class FullDuplexMessageWorker {
                 ce.printStackTrace();
             }
         }
+        if( inBuffers == null || inBuffers[1] == null) {
+            return null;
+        }
         inBuffers[1].rewind();
         return res;
     }

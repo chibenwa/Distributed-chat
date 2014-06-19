@@ -5,6 +5,7 @@ import Chat.Netmessage.ChatData;
 import csc4509.FullDuplexMessageWorker;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -118,13 +119,15 @@ public class NetManager {
                 break;
             }
             try {
-                chdata = (ChatData) full.getData();
-            } catch( NullPointerException nlp ) {
-                System.out.println("Can not read received datas ( Null pointer exception ) ");
-                if( manageIOError() ) {
-                    return;
+                Serializable serializable = full.getData();
+                if( serializable == null) {
+                    System.out.println("Can not read received datas ( Null pointer exception ) ");
+                    if( manageIOError() ) {
+                        return;
+                    }
+                    continue;
                 }
-                continue;
+                chdata = (ChatData) serializable;
             } catch (IOException ioe) {
                 System.out.println("Can not read received datas");
                 if( manageIOError() ) {
@@ -379,17 +382,20 @@ public class NetManager {
      */
 
     private Boolean manageIOError() {
-        nbNullPointerException++;
-        if( nbNullPointerException> 5) {
-            return true;
-        }
-        switchToSpareConnection();
-        while( isInSpareTansaction ) {
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException ie) {
-                System.out.println("Interrupted...");
+        if (isSpareSet) {
+            switchToSpareConnection();
+            while (isInSpareTansaction) {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException ie) {
+                    System.out.println("Interrupted...");
+                }
             }
+            return false;
+        }
+        nbNullPointerException++;
+        if (nbNullPointerException > 0) {
+            return true;
         }
         return false;
     }
