@@ -29,6 +29,5 @@ public class Main {
 
     // TODO : Secure type casting of thing received from the network...
     // TODO : register to some channels...
-    // TODO : token location and regeneration !!!!
 
  */
